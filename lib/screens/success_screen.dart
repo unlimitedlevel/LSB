@@ -13,8 +13,8 @@ class SuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
     final formattedDate =
-        report.reportDate != null
-            ? dateFormatter.format(report.reportDate!)
+        report.reportDatetime != null
+            ? dateFormatter.format(report.reportDatetime!)
             : 'Tanggal tidak tersedia';
 
     return WillPopScope(
@@ -124,6 +124,20 @@ class SuccessScreen extends StatelessWidget {
           title: 'Dilaporkan oleh',
           content: report.reporterName ?? 'Tidak tersedia',
         ),
+        const SizedBox(height: 8),
+        _buildDetailRow(
+          'Jenis Pengamatan:',
+          report.observationType ?? 'Unsafe Condition',
+        ),
+        if (report.lsbNumber != null && report.lsbNumber!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _buildDetailRow('Nomor LSB:', report.lsbNumber!),
+        ],
+        const SizedBox(height: 16),
+        const Text(
+          'Detail Bahaya:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
       ],
     );
   }
@@ -197,6 +211,20 @@ class SuccessScreen extends StatelessWidget {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const HomeScreen()),
       (route) => false,
+    );
+  }
+
+  Widget _buildDetailRow(String label, String content) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Text(content, style: const TextStyle(fontSize: 16))),
+      ],
     );
   }
 }

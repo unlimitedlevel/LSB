@@ -4,53 +4,77 @@ import 'package:flutter/material.dart';
 class HazardReport {
   final String? id;
   final String? reporterName;
-  final String? reporterDepartment;
   final String? reporterPosition;
-  final DateTime? reportDate;
+  final String? reporterSignature;
+  final DateTime? reportDatetime;
   final String? location;
+  final String? observationType;
   final String? hazardDescription;
   final String? suggestedAction;
-  final String? imageUrl;
+  final String? imagePath;
   final String? status;
-  final Map<String, dynamic>? metadata;
-  final String? assignedTo;
+  final String? lsbNumber;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  // Field untuk validasi
+  final String? validatedBy;
+  final String? validationNotes;
+  final DateTime? validatedAt;
+
+  // Field untuk tindak lanjut
+  final String? followUp;
+  final String? followedUpBy;
+  final DateTime? followedUpAt;
+
+  // Field untuk penutupan laporan
+  final String? closedBy;
+  final String? closingNotes;
+  final DateTime? closedAt;
 
   HazardReport({
     this.id,
     this.reporterName,
-    this.reporterDepartment,
     this.reporterPosition,
-    this.reportDate,
+    this.reporterSignature,
+    this.reportDatetime,
     this.location,
+    this.observationType = 'Unsafe Condition',
     this.hazardDescription,
     this.suggestedAction,
-    this.imageUrl,
-    this.status = 'open',
-    this.metadata,
-    this.assignedTo,
+    this.imagePath,
+    this.status = 'submitted',
+    this.lsbNumber,
     this.createdAt,
     this.updatedAt,
+    this.validatedBy,
+    this.validationNotes,
+    this.validatedAt,
+    this.followUp,
+    this.followedUpBy,
+    this.followedUpAt,
+    this.closedBy,
+    this.closingNotes,
+    this.closedAt,
   });
 
   factory HazardReport.fromJson(Map<String, dynamic> json) {
     return HazardReport(
       id: json['id'],
       reporterName: json['reporter_name'],
-      reporterDepartment: json['reporter_department'],
       reporterPosition: json['reporter_position'],
-      reportDate:
-          json['report_date'] != null
-              ? DateTime.parse(json['report_date'])
+      reporterSignature: json['reporter_signature'],
+      reportDatetime:
+          json['report_datetime'] != null
+              ? DateTime.parse(json['report_datetime'])
               : null,
       location: json['location'],
+      observationType: json['observation_type'],
       hazardDescription: json['hazard_description'],
       suggestedAction: json['suggested_action'],
-      imageUrl: json['image_url'],
-      status: json['status'] ?? 'open',
-      metadata: json['metadata'] != null ? jsonDecode(json['metadata']) : null,
-      assignedTo: json['assigned_to'],
+      imagePath: json['image_path'],
+      status: json['status'] ?? 'submitted',
+      lsbNumber: json['lsb_number'],
       createdAt:
           json['created_at'] != null
               ? DateTime.parse(json['created_at'])
@@ -59,25 +83,50 @@ class HazardReport {
           json['updated_at'] != null
               ? DateTime.parse(json['updated_at'])
               : null,
+      validatedBy: json['validated_by'],
+      validationNotes: json['validation_notes'],
+      validatedAt:
+          json['validated_at'] != null
+              ? DateTime.parse(json['validated_at'])
+              : null,
+      followUp: json['follow_up'],
+      followedUpBy: json['followed_up_by'],
+      followedUpAt:
+          json['followed_up_at'] != null
+              ? DateTime.parse(json['followed_up_at'])
+              : null,
+      closedBy: json['closed_by'],
+      closingNotes: json['closing_notes'],
+      closedAt:
+          json['closed_at'] != null ? DateTime.parse(json['closed_at']) : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      if (id != null) 'id': id,
       'reporter_name': reporterName,
-      'reporter_department': reporterDepartment,
       'reporter_position': reporterPosition,
-      'report_date': reportDate?.toIso8601String(),
+      'reporter_signature': reporterSignature,
+      'report_datetime': reportDatetime?.toIso8601String(),
       'location': location,
+      'observation_type': observationType,
       'hazard_description': hazardDescription,
       'suggested_action': suggestedAction,
-      'image_url': imageUrl,
+      'image_path': imagePath,
       'status': status,
-      'metadata': metadata != null ? jsonEncode(metadata) : null,
-      'assigned_to': assignedTo,
+      'lsb_number': lsbNumber,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'validated_by': validatedBy,
+      'validation_notes': validationNotes,
+      'validated_at': validatedAt?.toIso8601String(),
+      'follow_up': followUp,
+      'followed_up_by': followedUpBy,
+      'followed_up_at': followedUpAt?.toIso8601String(),
+      'closed_by': closedBy,
+      'closing_notes': closingNotes,
+      'closed_at': closedAt?.toIso8601String(),
     };
   }
 
@@ -88,8 +137,10 @@ class HazardReport {
 
   String get statusTranslated {
     switch (status?.toLowerCase()) {
-      case 'open':
-        return 'Open';
+      case 'submitted':
+        return 'Submitted';
+      case 'validated':
+        return 'Tervalidasi';
       case 'in_progress':
         return 'Proses';
       case 'completed':
@@ -101,8 +152,10 @@ class HazardReport {
 
   Color get statusColor {
     switch (status?.toLowerCase()) {
-      case 'open':
+      case 'submitted':
         return const Color(0xFFE83F5B);
+      case 'validated':
+        return const Color(0xFF3F83E8);
       case 'in_progress':
         return const Color(0xFFFFAD33);
       case 'completed':
@@ -115,34 +168,52 @@ class HazardReport {
   HazardReport copyWith({
     String? id,
     String? reporterName,
-    String? reporterDepartment,
     String? reporterPosition,
-    DateTime? reportDate,
+    String? reporterSignature,
+    DateTime? reportDatetime,
     String? location,
+    String? observationType,
     String? hazardDescription,
     String? suggestedAction,
-    String? imageUrl,
+    String? imagePath,
     String? status,
-    Map<String, dynamic>? metadata,
-    String? assignedTo,
+    String? lsbNumber,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? validatedBy,
+    String? validationNotes,
+    DateTime? validatedAt,
+    String? followUp,
+    String? followedUpBy,
+    DateTime? followedUpAt,
+    String? closedBy,
+    String? closingNotes,
+    DateTime? closedAt,
   }) {
     return HazardReport(
       id: id ?? this.id,
       reporterName: reporterName ?? this.reporterName,
-      reporterDepartment: reporterDepartment ?? this.reporterDepartment,
       reporterPosition: reporterPosition ?? this.reporterPosition,
-      reportDate: reportDate ?? this.reportDate,
+      reporterSignature: reporterSignature ?? this.reporterSignature,
+      reportDatetime: reportDatetime ?? this.reportDatetime,
       location: location ?? this.location,
+      observationType: observationType ?? this.observationType,
       hazardDescription: hazardDescription ?? this.hazardDescription,
       suggestedAction: suggestedAction ?? this.suggestedAction,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imagePath: imagePath ?? this.imagePath,
       status: status ?? this.status,
-      metadata: metadata ?? this.metadata,
-      assignedTo: assignedTo ?? this.assignedTo,
+      lsbNumber: lsbNumber ?? this.lsbNumber,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      validatedBy: validatedBy ?? this.validatedBy,
+      validationNotes: validationNotes ?? this.validationNotes,
+      validatedAt: validatedAt ?? this.validatedAt,
+      followUp: followUp ?? this.followUp,
+      followedUpBy: followedUpBy ?? this.followedUpBy,
+      followedUpAt: followedUpAt ?? this.followedUpAt,
+      closedBy: closedBy ?? this.closedBy,
+      closingNotes: closingNotes ?? this.closingNotes,
+      closedAt: closedAt ?? this.closedAt,
     );
   }
 }

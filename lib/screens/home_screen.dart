@@ -5,6 +5,7 @@ import '../services/supabase_service.dart';
 import '../models/hazard_report.dart';
 import 'report_form_screen.dart';
 import 'package:intl/intl.dart';
+import 'report_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -25,6 +26,17 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _reportsFuture = Future.value([]);
     _checkSupabaseInitialization();
+
+    // Tambahkan listener untuk auto refresh saat fokus kembali ke halaman ini
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final focusNode = FocusNode();
+      FocusScope.of(context).requestFocus(focusNode);
+      focusNode.addListener(() {
+        if (focusNode.hasFocus) {
+          _loadReports();
+        }
+      });
+    });
   }
 
   void _checkSupabaseInitialization() {
@@ -39,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       setState(() {
         _isSupabaseInitialized = false;
-        _reportsFuture = Future.value(_supabaseService.getDummyReports());
+        _reportsFuture = Future.value([]);
       });
       debugPrint('Supabase not initialized: $e');
     }
@@ -71,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_isSupabaseInitialized) {
       _reportsFuture = _supabaseService.getHazardReports();
     } else {
-      _reportsFuture = Future.value(_supabaseService.getDummyReports());
+      _reportsFuture = Future.value([]);
     }
     setState(() {});
   }
@@ -246,179 +258,175 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildReportCard(HazardReport report) {
     final dateFormatter = DateFormat('dd MMM yyyy', 'id_ID');
     final formattedDate =
-        report.reportDate != null
-            ? dateFormatter.format(report.reportDate!)
-            : 'Tanggal tidak tersedia';
+        report.reportDatetime != null
+            ? dateFormatter.format(report.reportDatetime!)
+            : 'N/A';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
         onTap: () {
-          // Navigasi ke halaman detail
+          // Navigasi ke detail report
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ReportDetailScreen(report: report),
+            ),
+          );
         },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header dengan gambar
+            if (report.imagePath != null && report.imagePath!.isNotEmpty)
+              SizedBox(
+                height: 150,
+                width: double.infinity,
+                child: Image.network(
+                  report.imagePath!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey.shade200,
+                      child: Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: 50,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child:
-                        report.imageUrl != null && report.imageUrl!.isNotEmpty
-                            ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                report.imageUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.image_not_supported_outlined,
-                                    size: 30,
-                                    color: Colors.blue.shade300,
-                                  );
-                                },
-                                loadingBuilder: (
-                                  context,
-                                  child,
-                                  loadingProgress,
-                                ) {
-                                  if (loadingProgress == null) return child;
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      value:
-                                          loadingProgress.expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  loadingProgress
-                                                      .expectedTotalBytes!
-                                              : null,
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
-                            : Icon(
-                              Icons.image_outlined,
-                              size: 30,
-                              color: Colors.blue.shade300,
-                            ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
+                  // Lokasi dan tanggal
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
                           report.location ?? 'Lokasi tidak tersedia',
                           style: const TextStyle(
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Reporter
+                  if (report.reporterName != null)
+                    Text(
+                      'Dilaporkan oleh: ${report.reporterName}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+
+                  // Observation Type
+                  if (report.observationType != null)
+                    Chip(
+                      label: Text(
+                        report.observationType!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      backgroundColor: Colors.grey.shade200,
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  const SizedBox(height: 12),
+
+                  // Deskripsi Hazard
+                  if (report.hazardDescription != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Deskripsi Bahaya:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          formattedDate,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        RichText(
-                          text: TextSpan(
-                            text: 'Dilaporkan oleh: ',
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 14,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: report.reporterName ?? 'Tidak tersedia',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
+                          report.hazardDescription!,
+                          style: const TextStyle(fontSize: 14),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          report.status == 'completed'
-                              ? Colors.green.shade100
-                              : report.status == 'in_progress'
-                              ? Colors.orange.shade100
-                              : Colors.red.shade100,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      report.status == 'completed'
-                          ? 'Selesai'
-                          : report.status == 'in_progress'
-                          ? 'Proses'
-                          : 'Open',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            report.status == 'completed'
-                                ? Colors.green.shade800
-                                : report.status == 'in_progress'
-                                ? Colors.orange.shade800
-                                : Colors.red.shade800,
-                        fontWeight: FontWeight.bold,
+                  const SizedBox(height: 16),
+
+                  // Status Bar
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Nomor LSB jika ada
+                      if (report.lsbNumber != null &&
+                          report.lsbNumber!.isNotEmpty)
+                        Text(
+                          'No. LSB: ${report.lsbNumber}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      else
+                        const SizedBox(),
+
+                      // Status chip
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: report.statusColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          report.statusTranslated,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Divider(height: 1),
-              const SizedBox(height: 16),
-              Text(
-                'Deskripsi Bahaya:',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                report.hazardDescription ?? 'Tidak ada deskripsi',
-                style: const TextStyle(fontSize: 14),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Tindakan yang Disarankan:',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                report.suggestedAction ?? 'Tidak ada saran tindakan',
-                style: const TextStyle(fontSize: 14),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -26,6 +26,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   final _locationController = TextEditingController();
   final _hazardDescriptionController = TextEditingController();
   final _suggestedActionController = TextEditingController();
+  final _lsbNumberController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
   File? _selectedImage;
@@ -40,6 +41,8 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   String? _ocrErrorMessage;
   Map<String, dynamic>? _extractedData;
 
+  String _selectedObservationType = 'Unsafe Condition';
+
   @override
   void dispose() {
     _reporterNameController.dispose();
@@ -47,6 +50,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     _locationController.dispose();
     _hazardDescriptionController.dispose();
     _suggestedActionController.dispose();
+    _lsbNumberController.dispose();
     super.dispose();
   }
 
@@ -266,6 +270,73 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         ),
         const SizedBox(height: 16),
 
+        // Jenis Pengamatan
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Jenis Pengamatan',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.normal,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<String>(
+                    title: const Text(
+                      'Unsafe Condition',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    value: 'Unsafe Condition',
+                    groupValue: _selectedObservationType,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedObservationType = value!;
+                      });
+                    },
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                Expanded(
+                  child: RadioListTile<String>(
+                    title: const Text(
+                      'Unsafe Action',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    value: 'Unsafe Action',
+                    groupValue: _selectedObservationType,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedObservationType = value!;
+                      });
+                    },
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+            RadioListTile<String>(
+              title: const Text('Intervensi', style: TextStyle(fontSize: 14)),
+              value: 'Intervensi',
+              groupValue: _selectedObservationType,
+              onChanged: (value) {
+                setState(() {
+                  _selectedObservationType = value!;
+                });
+              },
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
         // Deskripsi Bahaya
         TextFormField(
           controller: _hazardDescriptionController,
@@ -300,7 +371,18 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
             return null;
           },
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 16),
+
+        // Nomor LSB
+        TextFormField(
+          controller: _lsbNumberController,
+          decoration: const InputDecoration(
+            labelText: 'Nomor LSB',
+            hintText: 'Masukkan nomor LSB (opsional)',
+            prefixIcon: Icon(Icons.numbers),
+          ),
+        ),
+        const SizedBox(height: 16),
 
         // Tombol Submit
         SizedBox(
@@ -477,12 +559,28 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
             }
           }
 
+          if (result['observation_type'] != null) {
+            final observationType = result['observation_type'];
+            if ([
+              'Unsafe Condition',
+              'Unsafe Action',
+              'Intervensi',
+            ].contains(observationType)) {
+              _selectedObservationType = observationType;
+            }
+          }
+
           if (result['hazard_description'] != null) {
             _hazardDescriptionController.text = result['hazard_description'];
           }
 
           if (result['suggested_action'] != null) {
             _suggestedActionController.text = result['suggested_action'];
+          }
+
+          // Deteksi nomor LSB jika ada
+          if (result['lsb_number'] != null) {
+            _lsbNumberController.text = result['lsb_number'];
           }
         });
 
@@ -491,7 +589,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
             result['metadata']['correction_detected'] == true &&
             result['metadata']['correction_report'] != null) {
           if (mounted) {
-            _showCorrectionReport(result['metadata']['correction_report']);
+            var corrReport = result['metadata']['correction_report'];
+            String correctionReportText =
+                corrReport is String ? corrReport : corrReport.toString();
+            _showCorrectionReport(correctionReportText);
           }
         }
       } else {
@@ -558,33 +659,30 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       });
 
       try {
-        // Membuat objek metadata
-        Map<String, dynamic> metadata = {};
-        if (_extractedData != null && _extractedData!['metadata'] != null) {
-          metadata = _extractedData!['metadata'];
-        }
-
         final report = HazardReport(
           reporterName: _reporterNameController.text,
           reporterPosition: _reporterPositionController.text,
           location: _locationController.text,
-          reportDate: _selectedDate,
+          reportDatetime: _selectedDate,
+          observationType: _selectedObservationType,
           hazardDescription: _hazardDescriptionController.text,
           suggestedAction: _suggestedActionController.text,
-          status: 'open',
-          metadata: metadata,
-          createdAt: DateTime.now(),
+          lsbNumber:
+              _lsbNumberController.text.isNotEmpty
+                  ? _lsbNumberController.text
+                  : null,
+          status: 'submitted', // Status default untuk laporan baru
         );
 
-        String? imageUrl;
+        String? imagePath;
 
         // Upload gambar jika ada
         if (_hasImage()) {
-          imageUrl = await _uploadImage();
+          imagePath = await _uploadImage();
         }
 
         // Update URL gambar jika berhasil diupload
-        final updatedReport = report.copyWith(imageUrl: imageUrl);
+        final updatedReport = report.copyWith(imagePath: imagePath);
 
         // Simpan laporan ke Supabase
         final savedReport = await _supabaseService.saveHazardReport(

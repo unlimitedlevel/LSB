@@ -31,10 +31,16 @@ class ReportService {
 
       // Proses dengan Gemini Vision API
       final result = await _processWithGeminiVision(base64Image);
+
+      if (result == null) {
+        debugPrint('Gagal memproses gambar dengan Gemini API');
+        throw Exception('Gagal memproses gambar');
+      }
+
       return result;
     } catch (e) {
       debugPrint('Error processing image: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -48,17 +54,19 @@ class ReportService {
     }
 
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=$apiKey',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey',
     );
 
     // Prompt instruksi untuk Gemini
     const prompt = '''
     Analisis gambar ini dan ekstrak informasi dari formulir laporan LSB (Laporan Sumber Bahaya).
     Berikan jawaban dalam format JSON dengan fields berikut:
+    - lsb_number: Nomor LSB (biasanya tertulis di bagian atas formulir dengan format seperti "001-lsb-xxx")
     - reporter_name: Nama pelapor
     - reporter_position: Jabatan pelapor
     - location: Lokasi bahaya
     - report_date: Tanggal laporan (format YYYY-MM-DD)
+    - observation_type: Jenis pengamatan (pilih salah satu dari: "Unsafe Condition", "Unsafe Action", atau "Intervensi")
     - hazard_description: Deskripsi bahaya
     - suggested_action: Saran tindakan
 
@@ -66,9 +74,16 @@ class ReportService {
     Lakukan analisis tata bahasa dan perbaikan typo pada semua field.
     Jika ada kata yang salah tulis tapi masih bisa dikenali, perbaiki.
     
+    Perhatikan apakah ada nomor LSB di formulir. Biasanya tertulis "No. LSB:" diikuti nomor seperti "001-lsb-los04".
+    Jika tidak ada, biarkan field lsb_number kosong.
+    
+    Untuk field observation_type, perhatikan apakah ada kotak yang dicentang (√ atau v) pada form.
+    Biasanya di form tertulis "JENIS PENGAMATAN" dengan pilihan "Unsafe Condition", "Unsafe Action", atau "Intervensi".
+    Pilih salah satu yang dicentang atau "Unsafe Condition" jika tidak ada yang tercentang atau tidak bisa menentukan.
+    
     Pastikan tanggal dalam format yang benar (YYYY-MM-DD). Jika formatnya tidak sesuai, konversi ke format yang benar.
     
-    Kembalikan juga informasi tentang koreksi typo yang signifikan dalam field "correction_report".
+    Kembalikan juga informasi tentang koreksi typo yang signifikan dalam field "correction_report" sebagai string.
     ''';
 
     final payload = {
@@ -110,6 +125,11 @@ class ReportService {
 
           // Log koreksi typo jika ada
           if (data.containsKey('correction_report')) {
+            // Konversi correction_report menjadi string jika bukan string
+            if (data['correction_report'] is! String) {
+              data['correction_report'] = data['correction_report'].toString();
+            }
+
             debugPrint('Koreksi typo terdeteksi: ${data['correction_report']}');
 
             // Tambahkan flag ke metadata jika ada koreksi signifikan
@@ -124,11 +144,14 @@ class ReportService {
           throw Exception('Format JSON tidak ditemukan dalam respons');
         }
       } else {
+        debugPrint(
+          'Error dari Gemini API: ${response.statusCode}, ${response.body}',
+        );
         throw Exception('Error dari Gemini API: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error memproses gambar dengan Gemini: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -144,8 +167,18 @@ class ReportService {
 
     // Tambahkan informasi koreksi jika ada
     if (extractedData.containsKey('correction_report')) {
-      metadata['correction_report'] = extractedData['correction_report'];
+      // Pastikan correction_report adalah string
+      final corrReport = extractedData['correction_report'];
+      metadata['correction_report'] =
+          corrReport is String ? corrReport : corrReport.toString();
       metadata['correction_detected'] = true;
+    } else if (extractedData['metadata'] != null &&
+        extractedData['metadata']['correction_report'] != null) {
+      final corrReport = extractedData['metadata']['correction_report'];
+      metadata['correction_report'] =
+          corrReport is String ? corrReport : corrReport.toString();
+      metadata['correction_detected'] =
+          extractedData['metadata']['correction_detected'] ?? false;
     }
 
     // Tambahkan teks asli jika tersedia

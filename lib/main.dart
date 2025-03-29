@@ -6,7 +6,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'config/app_theme.dart';
 import 'config/supabase_config.dart';
 import 'screens/home_screen.dart';
-import 'screens/home_screen_modern.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,7 +59,7 @@ class MyApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('id', 'ID'), Locale('en', 'US')],
       locale: const Locale('id', 'ID'),
-      home: const HomeScreen(), // Gunakan HomeScreenModern untuk UI baru
+      home: const HomeScreen(),
     );
   }
 }

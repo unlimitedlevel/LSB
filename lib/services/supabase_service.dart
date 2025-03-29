@@ -12,13 +12,15 @@ class SupabaseService {
       return Supabase.instance.client;
     } catch (e) {
       debugPrint('Supabase client not initialized: $e');
-      return null;
+      throw Exception('Supabase client tidak tersedia');
     }
   }
 
   // Fungsi untuk memeriksa dan membuat tabel jika belum ada
   Future<bool> createTableIfNotExists() async {
-    if (_client == null) return false;
+    if (_client == null) {
+      throw Exception('Supabase client tidak tersedia');
+    }
 
     try {
       // Cek apakah tabel hazard_reports sudah ada
@@ -40,7 +42,7 @@ class SupabaseService {
   // Fungsi untuk mendapatkan semua laporan bahaya
   Future<List<HazardReport>> getHazardReports() async {
     if (_client == null) {
-      return getDummyReports();
+      throw Exception('Supabase client tidak tersedia');
     }
 
     try {
@@ -54,16 +56,14 @@ class SupabaseService {
           .toList();
     } catch (e) {
       debugPrint('Error getting hazard reports: $e');
-      return [];
+      throw Exception('Gagal mendapatkan data laporan dari Supabase: $e');
     }
   }
 
   // Fungsi untuk menyimpan laporan bahaya baru
   Future<HazardReport?> saveHazardReport(HazardReport report) async {
     if (_client == null) {
-      return report.copyWith(
-        id: 'dummy-${DateTime.now().millisecondsSinceEpoch}',
-      );
+      throw Exception('Supabase client tidak tersedia');
     }
 
     try {
@@ -79,13 +79,15 @@ class SupabaseService {
       return HazardReport.fromJson(response);
     } catch (e) {
       debugPrint('Error saving hazard report: $e');
-      return null;
+      throw Exception('Gagal menyimpan laporan ke Supabase: $e');
     }
   }
 
   // Fungsi untuk mengupdate laporan bahaya
   Future<HazardReport?> updateHazardReport(HazardReport report) async {
-    if (_client == null || report.id == null) return null;
+    if (_client == null || report.id == null) {
+      throw Exception('Supabase client tidak tersedia atau ID laporan kosong');
+    }
 
     try {
       final data = report.toJson();
@@ -103,75 +105,33 @@ class SupabaseService {
       return HazardReport.fromJson(response);
     } catch (e) {
       debugPrint('Error updating hazard report: $e');
-      return null;
+      throw Exception('Gagal mengupdate laporan di Supabase: $e');
     }
   }
 
   // Fungsi untuk menghapus laporan bahaya
   Future<bool> deleteHazardReport(String id) async {
-    if (_client == null) return false;
+    if (_client == null) {
+      throw Exception('Supabase client tidak tersedia');
+    }
 
     try {
       await _client!.from('hazard_reports').delete().eq('id', id);
       return true;
     } catch (e) {
       debugPrint('Error deleting hazard report: $e');
-      return false;
+      throw Exception('Gagal menghapus laporan dari Supabase: $e');
     }
   }
 
   // Membuat URL untuk upload gambar
   String getImageUploadUrl(String path) {
     if (_client == null) {
-      return 'https://via.placeholder.com/150';
+      throw Exception('Supabase client tidak tersedia');
     }
 
     // Membuat URL storage Supabase yang benar
     final url = _client!.storage.from('hazard-images').getPublicUrl(path);
     return url;
-  }
-
-  // Fungsi untuk mendapatkan laporan dummy untuk mode demo
-  List<HazardReport> getDummyReports() {
-    return [
-      HazardReport(
-        id: 'dummy-1',
-        reporterName: 'John Doe',
-        reporterPosition: 'Safety Officer',
-        location: 'Area Workshop',
-        reportDate: DateTime.now().subtract(const Duration(days: 2)),
-        hazardDescription:
-            'Terdapat genangan oli di lantai workshop yang dapat menyebabkan tergelincir.',
-        suggestedAction: 'Bersihkan genangan dan pasang tanda peringatan.',
-        status: 'open',
-        createdAt: DateTime.now().subtract(const Duration(days: 2)),
-      ),
-      HazardReport(
-        id: 'dummy-2',
-        reporterName: 'Jane Smith',
-        reporterPosition: 'Operator',
-        location: 'Gudang B',
-        reportDate: DateTime.now().subtract(const Duration(days: 5)),
-        hazardDescription:
-            'Instalasi kabel listrik terbuka dan dapat menyebabkan hubungan pendek.',
-        suggestedAction:
-            'Perbaiki instalasi kabel dan lakukan isolasi dengan benar.',
-        status: 'in_progress',
-        createdAt: DateTime.now().subtract(const Duration(days: 5)),
-      ),
-      HazardReport(
-        id: 'dummy-3',
-        reporterName: 'Ahmad Riyadi',
-        reporterPosition: 'Teknisi',
-        location: 'Area Loading',
-        reportDate: DateTime.now().subtract(const Duration(days: 10)),
-        hazardDescription:
-            'Tangga akses loading dock tidak memiliki pegangan yang menyebabkan risiko terjatuh.',
-        suggestedAction:
-            'Pasang railing di kedua sisi tangga sesuai standar K3.',
-        status: 'completed',
-        createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      ),
-    ];
   }
 }
