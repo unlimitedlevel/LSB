@@ -10,6 +10,9 @@ import '../services/supabase_service.dart';
 import '../models/hazard_report.dart';
 import '../services/report_service.dart';
 import '../config/app_theme.dart';
+import '../widgets/image_picker_widget.dart';
+import '../widgets/report_form_widget.dart';
+import '../utils/form_correction_utils.dart';
 import 'success_screen.dart';
 
 class ReportFormScreen extends StatefulWidget {
@@ -67,461 +70,65 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Bagian Upload Gambar
-                _buildImageSection(),
+                ImagePickerWidget(
+                  isProcessing: _isProcessing,
+                  selectedImage: _selectedImage,
+                  webImage: _webImage,
+                  onImageSelected:
+                      (file) => setState(() {
+                        _selectedImage = file;
+                        if (file != null) {
+                          _processImage();
+                        }
+                      }),
+                  onWebImageSelected:
+                      (bytes) => setState(() {
+                        _webImage = bytes;
+                        if (bytes != null) {
+                          _processImage();
+                        }
+                      }),
+                  onProcessStart:
+                      () => setState(() {
+                        _isProcessing = true;
+                        _ocrErrorMessage = null;
+                      }),
+                  onProcessEnd:
+                      () => setState(() {
+                        _isProcessing = false;
+                      }),
+                  errorMessage: _ocrErrorMessage,
+                  extractedData: _extractedData,
+                ),
                 const SizedBox(height: 24),
 
                 // Form Laporan Bahaya
-                _buildReportForm(),
+                ReportFormWidget(
+                  reporterNameController: _reporterNameController,
+                  reporterPositionController: _reporterPositionController,
+                  locationController: _locationController,
+                  hazardDescriptionController: _hazardDescriptionController,
+                  suggestedActionController: _suggestedActionController,
+                  lsbNumberController: _lsbNumberController,
+                  selectedDate: _selectedDate,
+                  selectedObservationType: _selectedObservationType,
+                  onDateSelected:
+                      (date) => setState(() {
+                        _selectedDate = date;
+                      }),
+                  onObservationTypeChanged:
+                      (type) => setState(() {
+                        _selectedObservationType = type;
+                      }),
+                  onSubmit: _submitReport,
+                  isLoading: _isLoading,
+                ),
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  Widget _buildImageSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Foto Sumber Bahaya',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Unggah foto yang menunjukkan sumber bahaya dengan jelas',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-        const SizedBox(height: 16),
-
-        // Container Image Picker
-        InkWell(
-          onTap: _isProcessing ? null : _selectImage,
-          child: Container(
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300, width: 1),
-            ),
-            child:
-                _isProcessing
-                    ? const Center(child: CircularProgressIndicator())
-                    : _getImageWidget(),
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Tombol untuk memilih gambar
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _selectImage,
-                icon: const Icon(Icons.add_a_photo),
-                label: Text(_hasImage() ? 'Ganti Foto' : 'Pilih Foto'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-            if (_hasImage()) ...[
-              const SizedBox(width: 16),
-              IconButton(
-                onPressed: _isProcessing ? null : _removeImage,
-                icon: const Icon(Icons.delete),
-                color: Colors.red,
-                tooltip: 'Hapus Gambar',
-              ),
-            ],
-          ],
-        ),
-
-        // Pesan kesalahan OCR jika ada
-        if (_ocrErrorMessage != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              _ocrErrorMessage!,
-              style: const TextStyle(color: Colors.red, fontSize: 14),
-            ),
-          ),
-
-        // Tampilkan pesan jika koreksi terdeteksi
-        if (_extractedData != null &&
-            _extractedData!['metadata'] != null &&
-            _extractedData!['metadata']['correction_detected'] == true)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.yellow.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.yellow.shade700),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.yellow.shade800),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Beberapa teks telah diperbaiki secara otomatis. Silakan cek data yang diisi.',
-                      style: TextStyle(fontSize: 14, color: Colors.black87),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildReportForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Detail Laporan',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-
-        // Nama Pelapor
-        TextFormField(
-          controller: _reporterNameController,
-          decoration: const InputDecoration(
-            labelText: 'Nama Pelapor',
-            hintText: 'Masukkan nama pelapor',
-            prefixIcon: Icon(Icons.person),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Nama pelapor harus diisi';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Jabatan Pelapor
-        TextFormField(
-          controller: _reporterPositionController,
-          decoration: const InputDecoration(
-            labelText: 'Jabatan/Posisi',
-            hintText: 'Masukkan jabatan atau posisi pelapor',
-            prefixIcon: Icon(Icons.work),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Jabatan/posisi harus diisi';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Lokasi Bahaya
-        TextFormField(
-          controller: _locationController,
-          decoration: const InputDecoration(
-            labelText: 'Lokasi Bahaya',
-            hintText: 'Masukkan lokasi bahaya dengan spesifik',
-            prefixIcon: Icon(Icons.location_on),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Lokasi bahaya harus diisi';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Tanggal Laporan
-        InkWell(
-          onTap: _selectDate,
-          child: InputDecorator(
-            decoration: InputDecoration(
-              labelText: 'Tanggal Laporan',
-              hintText: 'Pilih tanggal laporan',
-              prefixIcon: const Icon(Icons.calendar_today),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const Icon(Icons.arrow_drop_down),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Jenis Pengamatan
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Jenis Pengamatan',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.normal,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text(
-                      'Unsafe Condition',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    value: 'Unsafe Condition',
-                    groupValue: _selectedObservationType,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedObservationType = value!;
-                      });
-                    },
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text(
-                      'Unsafe Action',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    value: 'Unsafe Action',
-                    groupValue: _selectedObservationType,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedObservationType = value!;
-                      });
-                    },
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ],
-            ),
-            RadioListTile<String>(
-              title: const Text('Intervensi', style: TextStyle(fontSize: 14)),
-              value: 'Intervensi',
-              groupValue: _selectedObservationType,
-              onChanged: (value) {
-                setState(() {
-                  _selectedObservationType = value!;
-                });
-              },
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // Deskripsi Bahaya
-        TextFormField(
-          controller: _hazardDescriptionController,
-          decoration: const InputDecoration(
-            labelText: 'Deskripsi Bahaya',
-            hintText: 'Jelaskan kondisi bahaya secara detail',
-            prefixIcon: Icon(Icons.warning),
-          ),
-          maxLines: 3,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Deskripsi bahaya harus diisi';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Saran Tindakan
-        TextFormField(
-          controller: _suggestedActionController,
-          decoration: const InputDecoration(
-            labelText: 'Saran Tindakan',
-            hintText: 'Berikan saran tindakan untuk mengatasi bahaya',
-            prefixIcon: Icon(Icons.build),
-          ),
-          maxLines: 3,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Saran tindakan harus diisi';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Nomor LSB
-        TextFormField(
-          controller: _lsbNumberController,
-          decoration: const InputDecoration(
-            labelText: 'Nomor LSB',
-            hintText: 'Masukkan nomor LSB (opsional)',
-            prefixIcon: Icon(Icons.numbers),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Tombol Submit
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _submitReport,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child:
-                _isLoading
-                    ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                    : const Text(
-                      'KIRIM LAPORAN',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _getImageWidget() {
-    if (_selectedImage != null) {
-      // Untuk platform mobile
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.file(
-          _selectedImage!,
-          fit: BoxFit.cover,
-          width: double.infinity,
-        ),
-      );
-    } else if (_webImage != null) {
-      // Untuk platform web
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.memory(
-          _webImage!,
-          fit: BoxFit.cover,
-          width: double.infinity,
-        ),
-      );
-    } else {
-      // Placeholder ketika belum ada gambar
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.add_photo_alternate,
-            size: 60,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Ketuk untuk memilih gambar',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-          ),
-        ],
-      );
-    }
-  }
-
-  bool _hasImage() {
-    return _selectedImage != null || _webImage != null;
-  }
-
-  Future<void> _selectImage() async {
-    final ImagePicker picker = ImagePicker();
-
-    try {
-      final XFile? pickedImage = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-      );
-
-      if (pickedImage == null) return;
-
-      setState(() {
-        _isProcessing = true;
-        _ocrErrorMessage = null;
-      });
-
-      if (kIsWeb) {
-        // Untuk platform web
-        _webImage = await pickedImage.readAsBytes();
-      } else {
-        // Untuk platform mobile
-        _selectedImage = File(pickedImage.path);
-      }
-
-      // Proses OCR gambar
-      await _processImage();
-    } catch (e) {
-      debugPrint('Error selecting image: $e');
-      setState(() {
-        _ocrErrorMessage = 'Gagal memilih gambar: $e';
-        _isProcessing = false;
-      });
-    }
-  }
-
-  void _removeImage() {
-    setState(() {
-      _selectedImage = null;
-      _webImage = null;
-      _extractedData = null;
-      _ocrErrorMessage = null;
-    });
-  }
-
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-    );
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
   }
 
   Future<void> _processImage() async {
@@ -592,7 +199,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
             var corrReport = result['metadata']['correction_report'];
             String correctionReportText =
                 corrReport is String ? corrReport : corrReport.toString();
-            _showCorrectionReport(correctionReportText);
+            FormCorrectionUtils.showCorrectionReport(
+              context,
+              correctionReportText,
+            );
           }
         }
       } else {
@@ -611,45 +221,6 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         _isOcrRunning = false;
       });
     }
-  }
-
-  void _showCorrectionReport(String correctionReport) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(Icons.auto_fix_high, color: Colors.amber.shade700),
-                const SizedBox(width: 8),
-                const Text('Perbaikan Teks Otomatis'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Sistem telah mendeteksi dan memperbaiki beberapa teks:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(correctionReport),
-                const SizedBox(height: 16),
-                const Text(
-                  'Silakan periksa data di form untuk memastikan kebenaran.',
-                  style: TextStyle(fontStyle: FontStyle.italic),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('MENGERTI'),
-              ),
-            ],
-          ),
-    );
   }
 
   Future<void> _submitReport() async {
@@ -705,16 +276,23 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
           );
         } else {
           // Tampilkan error jika gagal menyimpan
-          _showErrorDialog('Gagal menyimpan laporan. Silakan coba lagi nanti.');
+          FormCorrectionUtils.showErrorDialog(
+            context,
+            'Gagal menyimpan laporan. Silakan coba lagi nanti.',
+          );
         }
       } catch (e) {
         debugPrint('Error submitting report: $e');
         setState(() {
           _isLoading = false;
         });
-        _showErrorDialog('Terjadi kesalahan: $e');
+        FormCorrectionUtils.showErrorDialog(context, 'Terjadi kesalahan: $e');
       }
     }
+  }
+
+  bool _hasImage() {
+    return _selectedImage != null || _webImage != null;
   }
 
   Future<String?> _uploadImage() async {
@@ -757,22 +335,5 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       debugPrint('Error uploading image: $e');
       return null;
     }
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Error'),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-    );
   }
 }
