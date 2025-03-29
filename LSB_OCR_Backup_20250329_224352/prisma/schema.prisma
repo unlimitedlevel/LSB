@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model HazardReport {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime? @map("updated_at") @db.Timestamptz
+  
+  reporterName     String    @map("reporter_name")
+  reporterPosition String    @map("reporter_position")
+  reporterSignature String?  @map("reporter_signature")
+  
+  lsbNumber        String?   @map("lsb_number")
+  reportDatetime   DateTime  @map("report_datetime") @db.Timestamptz
+  location         String
+  observationType  String    @map("observation_type")
+  hazardDescription String   @map("hazard_description")
+  suggestedAction  String    @map("suggested_action")
+  
+  status           String    @default("submitted")
+  imagePath        String?   @map("image_path")
+  
+  validatedBy      String?   @map("validated_by")
+  validationNotes  String?   @map("validation_notes")
+  validatedAt      DateTime? @map("validated_at") @db.Timestamptz
+  
+  followUp         String?   @map("follow_up")
+  followedUpBy     String?   @map("followed_up_by")
+  followedUpAt     DateTime? @map("followed_up_at") @db.Timestamptz
+  
+  closedBy         String?   @map("closed_by")
+  closingNotes     String?   @map("closing_notes")
+  closedAt         DateTime? @map("closed_at") @db.Timestamptz
+
+  @@map("hazard_reports")
+} 

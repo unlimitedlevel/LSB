@@ -1,0 +1,121 @@
+Supabase LSB
+
+URL : https://supabase.com/dashboard/project/zuqrzeuavfpawxpvcuhg
+Organization : QControl360
+Project Name : LSB HSE
+Password : ZavDs1gZODVDBpjM
+Region : Southeast Asia (Singapore)
+
+
+Direct connection
+Ideal for applications with persistent, long-lived connections, such as those running on virtual machines or long-standing containers.
+postgresql://postgres:[YOUR-PASSWORD]@db.zuqrzeuavfpawxpvcuhg.supabase.co:5432/postgres
+host: db.zuqrzeuavfpawxpvcuhg.supabase.co
+port: 5432
+database: postgres
+user: postgres
+
+
+
+
+Transaction pooler
+Shared Pooler
+Ideal for stateless applications like serverless functions where each interaction with Postgres is brief and isolated.
+postgresql://postgres.zuqrzeuavfpawxpvcuhg:[YOUR-PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+Does not support PREPARE statements
+host: aws-0-ap-southeast-1.pooler.supabase.com
+port: 6543
+database: postgres
+user: postgres.zuqrzeuavfpawxpvcuhg
+pool_mode: transaction
+For security reasons, your database password is never shown.
+
+
+
+
+
+
+Session pooler
+Shared Pooler
+Only recommended as an alternative to Direct Connection, when connecting via an IPv4 network.
+postgresql://postgres.zuqrzeuavfpawxpvcuhg:[YOUR-PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
+host: aws-0-ap-southeast-1.pooler.supabase.com
+port: 5432
+database: postgres
+user: postgres.zuqrzeuavfpawxpvcuhg
+pool_mode: session
+For security reasons, your database password is never shown.
+
+
+
+
+
+Mobile Frameworks
+
+lib/main.dart
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+Future<void> main() async {
+  await Supabase.initialize(
+    url: 'https://zuqrzeuavfpawxpvcuhg.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1cXJ6ZXVhdmZwYXd4cHZjdWhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI4ODQ3NTQsImV4cCI6MjA1ODQ2MDc1NH0.E4Y1ZCljEAEyZsMMBmPvhyb6beX2aS0PsXrU5lzoasE',
+  );
+  runApp(MyApp());
+}
+
+
+
+
+
+
+
+lib/main.dart(app)
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      title: 'Todos',
+      home: HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final _future = Supabase.instance.client
+      .from('todos')
+      .select();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: FutureBuilder(
+        future: _future,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final todos = snapshot.data!;
+          return ListView.builder(
+            itemCount: todos.length,
+            itemBuilder: ((context, index) {
+              final todo = todos[index];
+              return ListTile(
+                title: Text(todo['name']),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+}
