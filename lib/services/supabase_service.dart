@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/hazard_report.dart';
-import 'package:flutter/material.dart';
 
 class SupabaseService {
   final SupabaseClient? _client;
@@ -11,8 +12,8 @@ class SupabaseService {
     try {
       return Supabase.instance.client;
     } catch (e) {
-      debugPrint('Supabase client not initialized: $e');
-      throw Exception('Supabase client tidak tersedia');
+      debugPrint('Error getting Supabase client: $e');
+      return null;
     }
   }
 
@@ -24,12 +25,7 @@ class SupabaseService {
 
     try {
       // Cek apakah tabel hazard_reports sudah ada
-      final response =
-          await _client!
-              .from('hazard_reports')
-              .select('id')
-              .limit(1)
-              .maybeSingle();
+      await _client.from('hazard_reports').select('id').limit(1).maybeSingle();
 
       // Jika berhasil query, berarti tabel sudah ada
       return true;
@@ -46,7 +42,7 @@ class SupabaseService {
     }
 
     try {
-      final response = await _client!
+      final response = await _client
           .from('hazard_reports')
           .select()
           .order('created_at', ascending: false);
@@ -60,23 +56,44 @@ class SupabaseService {
     }
   }
 
-  // Fungsi untuk menyimpan laporan bahaya baru
-  Future<HazardReport?> saveHazardReport(HazardReport report) async {
+  /// Menyimpan laporan hazard baru ke Supabase dan mengembalikan response
+  Future<Map<String, dynamic>> saveHazardReport(HazardReport report) async {
     if (_client == null) {
       throw Exception('Supabase client tidak tersedia');
     }
 
     try {
-      final data = report.toJson();
-      // Hapus id jika null
-      if (data['id'] == null) {
-        data.remove('id');
+      // Siapkan data untuk disimpan, konversi model ke JSON, tapi hapus field yang tidak ada di tabel
+      final dataToSave = report.toJson();
+
+      // Hapus field yang tidak ada di tabel hazard_reports
+      dataToSave.remove('correction_detected');
+      dataToSave.remove('correction_report');
+
+      // Jika ada metadata, tambahkan informasi koreksi ke dalam metadata
+      if (report.correctionDetected == true ||
+          report.correctionReport != null) {
+        if (dataToSave['metadata'] == null) {
+          dataToSave['metadata'] = {};
+        }
+
+        dataToSave['metadata']['correction_detected'] =
+            report.correctionDetected;
+        if (report.correctionReport != null) {
+          dataToSave['metadata']['correction_report'] = report.correctionReport;
+        }
       }
 
+      // Simpan ke Supabase
       final response =
-          await _client!.from('hazard_reports').insert(data).select().single();
+          await _client
+              .from('hazard_reports')
+              .insert(dataToSave)
+              .select()
+              .single();
 
-      return HazardReport.fromJson(response);
+      debugPrint('Hazard report saved successfully: ${response['id']}');
+      return response;
     } catch (e) {
       debugPrint('Error saving hazard report: $e');
       throw Exception('Gagal menyimpan laporan ke Supabase: $e');
@@ -95,7 +112,7 @@ class SupabaseService {
       data.remove('id');
 
       final response =
-          await _client!
+          await _client
               .from('hazard_reports')
               .update(data)
               .eq('id', report.id!)
@@ -116,7 +133,7 @@ class SupabaseService {
     }
 
     try {
-      await _client!.from('hazard_reports').delete().eq('id', id);
+      await _client.from('hazard_reports').delete().eq('id', id);
       return true;
     } catch (e) {
       debugPrint('Error deleting hazard report: $e');
@@ -131,7 +148,7 @@ class SupabaseService {
     }
 
     // Membuat URL storage Supabase yang benar
-    final url = _client!.storage.from('hazard-images').getPublicUrl(path);
+    final url = _client.storage.from('hazard-images').getPublicUrl(path);
     return url;
   }
 }

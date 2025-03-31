@@ -8,12 +8,12 @@ class ReportDetailSection extends StatelessWidget {
   final bool isLongText;
 
   const ReportDetailSection({
-    Key? key,
+    super.key,
     required this.title,
     required this.content,
     required this.icon,
     this.isLongText = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -52,8 +52,7 @@ class InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const InfoRow({Key? key, required this.label, required this.value})
-    : super(key: key);
+  const InfoRow({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -86,8 +85,7 @@ class StatusBadge extends StatelessWidget {
   final String status;
   final Color color;
 
-  const StatusBadge({Key? key, required this.status, required this.color})
-    : super(key: key);
+  const StatusBadge({super.key, required this.status, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -115,17 +113,17 @@ class ReportHeaderInfo extends StatelessWidget {
   final Color statusColor;
 
   const ReportHeaderInfo({
-    Key? key,
+    super.key,
     this.lsbNumber,
     required this.statusText,
     required this.statusColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: statusColor.withOpacity(0.1),
+      color: statusColor.withAlpha(25),
       padding: const EdgeInsets.all(16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

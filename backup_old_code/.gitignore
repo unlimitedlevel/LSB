@@ -44,30 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Environment variables and secrets
+# Environment variables
 .env
-.env.local
-.env.development
-.env.production
+*.env
 *.env.*
-/lib/config/secrets.dart
-/lib/config/api_keys.dart
-/lib/config/secure_keys.dart
-
-# Gemini API keys and credentials
-/Gemini API LSB.txt
-**/api_key*.txt
-**/credentials*.json
-
-# Temporary files
-.temp/
-.cache/
-.tmp/
-
-# Local deployment configs
-firebase.json
-supabase/seed.sql
-**/service-account*.json
-
-# Proxy server
-/cors_proxy/

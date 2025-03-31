@@ -19,21 +19,35 @@ class SupabaseConfig {
       _cachedAnonKey = await _secureKeys.getSupabaseAnonKey();
       _cachedVisionApiKey = await _secureKeys.getVisionApiKey();
       _cachedGeminiApiKey = await _secureKeys.getGeminiApiKey();
+    } else {
+      // Untuk debug mode, baca dan cache nilai dari .env
+      _cachedUrl = dotenv.env['SUPABASE_URL'];
+      _cachedAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+      _cachedVisionApiKey = dotenv.env['GOOGLE_VISION_API_KEY'];
+      _cachedGeminiApiKey =
+          dotenv.env['GEMINI_API_KEY'] ?? dotenv.env['GOOGLE_GEMINI_API_KEY'];
+
+      // Log untuk debugging
+      debugPrint('Cache initialized in debug mode:');
+      debugPrint('URL: ${_cachedUrl?.isNotEmpty}');
+      debugPrint('AnonKey: ${_cachedAnonKey?.isNotEmpty}');
+      debugPrint('VisionAPI: ${_cachedVisionApiKey?.isNotEmpty}');
+      debugPrint('GeminiAPI: ${_cachedGeminiApiKey?.isNotEmpty}');
     }
   }
 
   // Supabase URL
   static String get url {
-    if (kReleaseMode) {
-      return _cachedUrl ?? '';
+    if (_cachedUrl != null && _cachedUrl!.isNotEmpty) {
+      return _cachedUrl!;
     }
     return dotenv.env['SUPABASE_URL'] ?? '';
   }
 
   // Supabase Anon Key
   static String get anonKey {
-    if (kReleaseMode) {
-      return _cachedAnonKey ?? '';
+    if (_cachedAnonKey != null && _cachedAnonKey!.isNotEmpty) {
+      return _cachedAnonKey!;
     }
     return dotenv.env['SUPABASE_ANON_KEY'] ?? '';
   }
@@ -46,18 +60,27 @@ class SupabaseConfig {
 
   // Google Cloud Vision API key untuk OCR
   static String get visionApiKey {
-    if (kReleaseMode) {
-      return _cachedVisionApiKey ?? '';
+    if (_cachedVisionApiKey != null && _cachedVisionApiKey!.isNotEmpty) {
+      return _cachedVisionApiKey!;
     }
     return dotenv.env['GOOGLE_VISION_API_KEY'] ?? '';
   }
 
   // Google Gemini API key untuk proses AI
   static String get geminiApiKey {
-    if (kReleaseMode) {
-      return _cachedGeminiApiKey ?? '';
+    if (_cachedGeminiApiKey != null && _cachedGeminiApiKey!.isNotEmpty) {
+      return _cachedGeminiApiKey!;
     }
-    return dotenv.env['GOOGLE_GEMINI_API_KEY'] ?? '';
+
+    // Periksa kedua kemungkinan kunci
+    final key =
+        dotenv.env['GEMINI_API_KEY'] ??
+        dotenv.env['GOOGLE_GEMINI_API_KEY'] ??
+        '';
+    if (key.isEmpty) {
+      debugPrint('Warning: No Gemini API key found in environment variables');
+    }
+    return key;
   }
 
   // Google Cloud Project ID (opsional, untuk kebutuhan tertentu)

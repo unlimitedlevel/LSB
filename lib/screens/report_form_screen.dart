@@ -1,22 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'dart:convert';
 import 'dart:typed_data';
 import '../services/supabase_service.dart';
 import '../models/hazard_report.dart';
 import '../services/report_service.dart';
-import '../config/app_theme.dart';
 import '../widgets/image_picker_widget.dart';
 import '../widgets/report_form_widget.dart';
 import '../utils/form_correction_utils.dart';
 import 'success_screen.dart';
 
 class ReportFormScreen extends StatefulWidget {
-  const ReportFormScreen({Key? key}) : super(key: key);
+  const ReportFormScreen({super.key});
 
   @override
   State<ReportFormScreen> createState() => _ReportFormScreenState();
@@ -40,7 +37,6 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   final ReportService _reportService = ReportService();
 
   // Status untuk proses OCR
-  bool _isOcrRunning = false;
   String? _ocrErrorMessage;
   Map<String, dynamic>? _extractedData;
 
@@ -134,12 +130,14 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Future<void> _processImage() async {
     try {
       setState(() {
-        _isOcrRunning = true;
+        _isProcessing = true;
       });
 
       // Gunakan ReportService untuk memproses gambar
       dynamic imageSource = kIsWeb ? _webImage : _selectedImage;
       final result = await _reportService.processImage(imageSource);
+
+      if (!mounted) return;
 
       if (result != null) {
         setState(() {
@@ -197,29 +195,30 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
             result['metadata']['correction_report'] != null) {
           if (mounted) {
             var corrReport = result['metadata']['correction_report'];
-            String correctionReportText =
-                corrReport is String ? corrReport : corrReport.toString();
+            String correctionReportText = corrReport.toString();
             FormCorrectionUtils.showCorrectionReport(
               context,
               correctionReportText,
             );
           }
         }
-      } else {
-        setState(() {
-          _ocrErrorMessage = 'Gagal mengekstrak data dari gambar';
-        });
       }
     } catch (e) {
-      debugPrint('Error processing image: $e');
-      setState(() {
-        _ocrErrorMessage = 'Gagal memproses gambar: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _ocrErrorMessage = e.toString();
+        });
+        FormCorrectionUtils.showErrorDialog(
+          context,
+          'Terjadi kesalahan saat memproses gambar: $e',
+        );
+      }
     } finally {
-      setState(() {
-        _isProcessing = false;
-        _isOcrRunning = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
@@ -239,16 +238,16 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
           hazardDescription: _hazardDescriptionController.text,
           suggestedAction: _suggestedActionController.text,
           lsbNumber:
-              _lsbNumberController.text.isNotEmpty
-                  ? _lsbNumberController.text
-                  : null,
+              _lsbNumberController.text.isEmpty
+                  ? null
+                  : _lsbNumberController.text,
           status: 'submitted', // Status default untuk laporan baru
         );
 
         String? imagePath;
 
         // Upload gambar jika ada
-        if (_hasImage()) {
+        if (_selectedImage != null || _webImage != null) {
           imagePath = await _uploadImage();
         }
 
@@ -256,43 +255,35 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         final updatedReport = report.copyWith(imagePath: imagePath);
 
         // Simpan laporan ke Supabase
-        final savedReport = await _supabaseService.saveHazardReport(
+        final savedReportMap = await _supabaseService.saveHazardReport(
           updatedReport,
         );
 
         // Reset loading state
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
 
-        if (savedReport != null) {
-          // Navigasi ke halaman sukses
-          if (!mounted) return;
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SuccessScreen(report: savedReport),
-            ),
-          );
-        } else {
-          // Tampilkan error jika gagal menyimpan
-          FormCorrectionUtils.showErrorDialog(
-            context,
-            'Gagal menyimpan laporan. Silakan coba lagi nanti.',
-          );
-        }
+        // Konversi dari Map ke HazardReport
+        final savedReport = HazardReport.fromJson(savedReportMap);
+
+        // Navigasi ke halaman sukses
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SuccessScreen(report: savedReport),
+          ),
+        );
       } catch (e) {
         debugPrint('Error submitting report: $e');
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
         FormCorrectionUtils.showErrorDialog(context, 'Terjadi kesalahan: $e');
       }
     }
-  }
-
-  bool _hasImage() {
-    return _selectedImage != null || _webImage != null;
   }
 
   Future<String?> _uploadImage() async {

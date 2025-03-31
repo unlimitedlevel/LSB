@@ -1,93 +1,163 @@
-# LSB OCR - Aplikasi Laporan Sumber Bahaya dengan OCR
+# LSB OCR - Aplikasi Laporan Sumber Bahaya
 
-Aplikasi ini dirancang untuk memudahkan pengguna dalam membuat laporan sumber bahaya menggunakan teknologi Optical Character Recognition (OCR) dan analisis AI dengan Gemini Vision API.
+Aplikasi untuk melakukan OCR (Optical Character Recognition) dan analisis otomatis terhadap form Laporan Sumber Bahaya (LSB) pada proyek konstruksi menggunakan Flutter dan AI dari Google Gemini.
 
 ## Fitur Utama
 
-- **OCR dan Analisis AI**: Otomatis mengekstrak data dari formulir laporan dan melakukan analisis tata bahasa
-- **Koreksi Typo Otomatis**: Memperbaiki kesalahan ketik pada teks yang diekstrak dari gambar
-- **Integrasi Supabase**: Penyimpanan data yang aman dan realtime
-- **Nomor LSB**: Mendukung penggunaan nomor LSB untuk pelacakan laporan
-- **Jenis Pengamatan**: Mendukung kategori "Unsafe Condition", "Unsafe Action", dan "Intervensi"
-- **Status Laporan**: Melacak status laporan (Submitted, Validated, In Progress, Completed)
-- **Upload Gambar**: Mendukung upload gambar dari galeri atau kamera
+- 📷 **OCR Form LSB**: Scan dan ekstrak data otomatis dari form LSB fisik melalui foto
+- 🤖 **AI Analysis**: Koreksi tata bahasa dan typo pada teks hasil OCR menggunakan Gemini 2.0
+- 📊 **Dashboard Laporan**: Visualisasi status dan tren laporan bahaya
+- 🗄️ **Database Terintegrasi**: Penyimpanan dan pengelolaan data menggunakan Supabase
+- 📱 **Multi-platform**: Tersedia untuk Android, iOS, dan Web
 
-## Struktur Aplikasi
+## Persiapan Lingkungan Pengembangan
 
-Aplikasi ini menggunakan arsitektur modular dengan komponen-komponen yang telah direfaktor untuk modularitas yang lebih baik:
+### Prasyarat
 
-- **screens/**: Berisi halaman utama aplikasi
-  - `home_screen.dart`: Halaman beranda yang menampilkan daftar laporan
-  - `report_form_screen.dart`: Form untuk membuat laporan baru
-  - `report_detail_screen.dart`: Halaman detail laporan
-  - `success_screen.dart`: Halaman konfirmasi setelah laporan berhasil dikirim
+- Flutter SDK 3.7.0 atau lebih baru
+- Dart 3.0.0 atau lebih baru
+- Google API Key (untuk Gemini API)
+- Supabase Account dan Project (untuk backend)
 
-- **widgets/**: Komponen UI yang dapat digunakan kembali
-  - `image_picker_widget.dart`: Widget untuk memilih dan menampilkan gambar
-  - `report_form_widget.dart`: Widget form untuk laporan
-  - `report_detail_widgets.dart`: Widget-widget untuk halaman detail
-  - `system_info_section.dart`: Widget untuk menampilkan informasi sistem
-  - `gradient_card.dart`: Card dengan latar gradient
-  - `user_header.dart`: Header dengan informasi pengguna
+### Mendapatkan Kunci API
 
-- **models/**: Model data aplikasi
-  - `hazard_report.dart`: Model untuk laporan bahaya
+1. **Gemini API Key**:
+   - Kunjungi [Google AI Studio](https://ai.google.dev/)
+   - Buat akun dan dapatkan API key
 
-- **services/**: Layanan dan logika bisnis
-  - `supabase_service.dart`: Menangani komunikasi dengan Supabase
-  - `report_service.dart`: Menangani pemrosesan laporan
-  - `image_processing_service.dart`: Khusus menangani pemrosesan gambar dan OCR
-  - `secure_api_bridge.dart`: Mengelola kunci API secara aman
+2. **Supabase Setup**:
+   - Daftar di [Supabase](https://supabase.com/)
+   - Buat project baru
+   - Dapatkan URL dan Anon Key
 
-- **utils/**: Fungsi-fungsi utilitas
-  - `form_correction_utils.dart`: Utilitas untuk menangani koreksi form
+### Konfigurasi Lingkungan
 
-- **config/**: Konfigurasi aplikasi
-  - `app_theme.dart`: Tema dan gaya aplikasi
-  - `supabase_config.dart`: Konfigurasi Supabase
-  - `secure_keys.dart`: Menyimpan kunci API dengan aman
-
-## Pengembangan Terbaru
-
-- Refactoring kode untuk modularitas yang lebih baik dan pemeliharaan yang lebih mudah
-- Pemisahan komponen UI menjadi widget yang dapat digunakan kembali
-- Optimalisasi layanan dengan pemisahan tanggung jawab yang lebih jelas
-- Penambahan dukungan nomor LSB pada formulir dan laporan
-- Perbaikan tampilan kartu laporan di halaman beranda
-- Penambahan halaman detail laporan yang komprehensif
-- Implementasi refresh otomatis untuk memastikan data selalu terbaru
-- Integrasi yang lebih baik dengan Supabase
-- Peningkatan prompt Gemini API untuk ekstraksi data yang lebih akurat
-- Perbaikan UI/UX secara keseluruhan
-
-## Cara Menggunakan
-
-1. Pastikan Anda telah mengatur file `.env` dengan kunci API yang benar:
+1. Salin file `.env.example` menjadi `.env`:
+   ```bash
+   cp .env.example .env
    ```
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   GOOGLE_VISION_API_KEY=your_google_vision_api_key
+
+2. Edit file `.env` dan masukkan kunci API dan kredensial:
+   ```
    GEMINI_API_KEY=your_gemini_api_key
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-2. Jalankan `flutter pub get` untuk mengunduh semua dependensi
-3. Jalankan aplikasi dengan `flutter run`
+### Instalasi
 
-## Dependensi Utama
+1. Clone repository:
+   ```bash
+   git clone https://github.com/yourusername/lsb_ocr.git
+   cd lsb_ocr
+   ```
 
-- Flutter SDK
-- Supabase Flutter
-- Image Picker
-- Intl
-- HTTP
-- Flutter Dotenv
-- UUID
+2. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
 
-## Pemeliharaan
+3. Jalankan aplikasi:
+   ```bash
+   flutter run
+   ```
 
-Aplikasi ini dirancang dengan arsitektur yang modular sehingga:
-- Penambahan fitur baru dapat dilakukan dengan mudah
-- Komponen dapat diuji secara terpisah
-- Perbaikan bug dapat dilakukan tanpa mempengaruhi bagian lain
-- Refactoring dapat dilakukan secara bertahap
+## Struktur Basis Data
+
+Aplikasi menggunakan Supabase dengan struktur database berikut:
+
+```sql
+-- Tabel utama
+CREATE TABLE hazard_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE,
+  
+  -- Informasi Pelapor
+  reporter_name TEXT NOT NULL,
+  reporter_position TEXT NOT NULL,
+  reporter_signature TEXT,
+  
+  -- Informasi LSB
+  lsb_number TEXT,
+  report_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+  location TEXT NOT NULL,
+  observation_type TEXT NOT NULL,
+  hazard_description TEXT NOT NULL,
+  suggested_action TEXT NOT NULL,
+  
+  -- Status dan Image
+  status TEXT NOT NULL DEFAULT 'submitted',
+  image_path TEXT,
+  
+  -- Field Validasi
+  validated_by TEXT,
+  validation_notes TEXT,
+  validated_at TIMESTAMP WITH TIME ZONE,
+  
+  -- Field Tindak Lanjut
+  follow_up TEXT,
+  followed_up_by TEXT,
+  followed_up_at TIMESTAMP WITH TIME ZONE,
+  
+  -- Field Penutupan Laporan
+  closed_by TEXT,
+  closing_notes TEXT,
+  closed_at TIMESTAMP WITH TIME ZONE,
+  
+  -- Field Koreksi AI
+  correction_detected BOOLEAN,
+  correction_report TEXT,
+  
+  -- Metadata tambahan (JSON)
+  metadata JSONB
+);
+```
+
+## Penggunaan Gemini 2.0 API
+
+Aplikasi ini menggunakan Google Gemini 2.0 Flash API untuk melakukan OCR dan analisis teks dari gambar form LSB. Model ini dapat mengekstrak informasi terstruktur dari gambar dan melakukan koreksi teks.
+
+```dart
+// Contoh penggunaan API Gemini 2.0
+final targetUrl = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$apiKey';
+
+// Request body
+final requestBody = {
+  'contents': [
+    {
+      'parts': [
+        {'text': prompt},
+        {
+          'inline_data': {'mime_type': 'image/jpeg', 'data': base64Image},
+        },
+      ],
+    },
+  ],
+  // Configuration
+  'generationConfig': {
+    'temperature': 0.2,
+    'topK': 32,
+    'topP': 0.95,
+    'maxOutputTokens': 2048,
+  },
+};
+```
+
+## Kontribusi
+
+Kami sangat menghargai kontribusi! Silakan buat pull request atau laporkan issue untuk perbaikan atau penambahan fitur.
+
+## Keamanan
+
+- **JANGAN** commit file `.env` atau file yang berisi API keys ke repository
+- File `.gitignore` sudah dikonfigurasi untuk mengabaikan file-file sensitif
+- Gunakan environment variables untuk informasi rahasia pada deployment
+
+## Lisensi
+
+MIT License
+
+## Kontak
+
+Untuk pertanyaan atau bantuan, hubungi tim pengembang di: developer@example.com

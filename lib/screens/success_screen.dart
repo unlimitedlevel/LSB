@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/hazard_report.dart';
 import '../config/app_theme.dart';
-import 'home_screen.dart';
 
 class SuccessScreen extends StatelessWidget {
   final HazardReport report;
 
-  const SuccessScreen({Key? key, required this.report}) : super(key: key);
+  const SuccessScreen({super.key, required this.report});
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +16,13 @@ class SuccessScreen extends StatelessWidget {
             ? dateFormatter.format(report.reportDatetime!)
             : 'Tanggal tidak tersedia';
 
-    return WillPopScope(
-      onWillPop: () async {
-        _navigateToHome(context);
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, bool? result) {
+        if (!didPop) {
+          _navigateToHome(context);
+        }
+        return;
       },
       child: Scaffold(
         body: SafeArea(
@@ -156,7 +158,7 @@ class SuccessScreen extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: AppTheme.primaryColor.withAlpha(25),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: AppTheme.primaryColor, size: 20),
@@ -189,15 +191,17 @@ class SuccessScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => _navigateToHome(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                elevation: 0,
+                shadowColor: Theme.of(context).primaryColor.withAlpha(38),
               ),
               child: const Text(
-                'KEMBALI KE BERANDA',
+                'Kembali ke Beranda',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
@@ -208,10 +212,7 @@ class SuccessScreen extends StatelessWidget {
   }
 
   void _navigateToHome(BuildContext context) {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-      (route) => false,
-    );
+    Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
   }
 
   Widget _buildDetailRow(String label, String content) {

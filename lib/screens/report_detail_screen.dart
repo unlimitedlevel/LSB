@@ -7,7 +7,7 @@ import '../widgets/system_info_section.dart';
 class ReportDetailScreen extends StatelessWidget {
   final HazardReport report;
 
-  const ReportDetailScreen({Key? key, required this.report}) : super(key: key);
+  const ReportDetailScreen({super.key, required this.report});
 
   @override
   Widget build(BuildContext context) {

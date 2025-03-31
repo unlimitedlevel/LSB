@@ -32,6 +32,13 @@ class HazardReport {
   final String? closingNotes;
   final DateTime? closedAt;
 
+  // Field untuk koreksi tata bahasa dan typo
+  final bool? correctionDetected;
+  final String? correctionReport;
+
+  // Metadata untuk menyimpan informasi tambahan
+  final Map<String, dynamic>? metadata;
+
   HazardReport({
     this.id,
     this.reporterName,
@@ -56,6 +63,9 @@ class HazardReport {
     this.closedBy,
     this.closingNotes,
     this.closedAt,
+    this.correctionDetected,
+    this.correctionReport,
+    this.metadata,
   });
 
   factory HazardReport.fromJson(Map<String, dynamic> json) {
@@ -99,6 +109,12 @@ class HazardReport {
       closingNotes: json['closing_notes'],
       closedAt:
           json['closed_at'] != null ? DateTime.parse(json['closed_at']) : null,
+      correctionDetected: json['correction_detected'],
+      correctionReport: json['correction_report'],
+      metadata:
+          json['metadata'] is Map
+              ? Map<String, dynamic>.from(json['metadata'])
+              : null,
     );
   }
 
@@ -127,6 +143,9 @@ class HazardReport {
       'closed_by': closedBy,
       'closing_notes': closingNotes,
       'closed_at': closedAt?.toIso8601String(),
+      'correction_detected': correctionDetected,
+      'correction_report': correctionReport,
+      if (metadata != null) 'metadata': metadata,
     };
   }
 
@@ -189,6 +208,9 @@ class HazardReport {
     String? closedBy,
     String? closingNotes,
     DateTime? closedAt,
+    bool? correctionDetected,
+    String? correctionReport,
+    Map<String, dynamic>? metadata,
   }) {
     return HazardReport(
       id: id ?? this.id,
@@ -214,6 +236,9 @@ class HazardReport {
       closedBy: closedBy ?? this.closedBy,
       closingNotes: closingNotes ?? this.closingNotes,
       closedAt: closedAt ?? this.closedAt,
+      correctionDetected: correctionDetected ?? this.correctionDetected,
+      correctionReport: correctionReport ?? this.correctionReport,
+      metadata: metadata ?? this.metadata,
     );
   }
 }

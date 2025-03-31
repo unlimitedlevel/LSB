@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'dart:io';
 import 'config/app_theme.dart';
 import 'config/supabase_config.dart';
 import 'screens/home_screen.dart';
@@ -13,13 +14,36 @@ void main() async {
   // Initialize locale data for date formatting
   await initializeDateFormatting('id_ID', null);
 
-  // Load .env file (hanya untuk development)
-  await dotenv.load(fileName: '.env').catchError((e) {
-    debugPrint('Warning: .env file not found or invalid: $e');
-  });
+  // Load .env file dengan robust error handling
+  await dotenv
+      .load(fileName: '.env')
+      .then((value) {
+        debugPrint('Successfully loaded .env file');
+        // Tambahan debug untuk mengetahui isi environment variablesnys
+        debugPrint('Environment variables loaded:');
+        debugPrint(
+          'GEMINI_API_KEY: ${dotenv.env['GEMINI_API_KEY']?.isNotEmpty}',
+        );
+        debugPrint(
+          'GOOGLE_GEMINI_API_KEY: ${dotenv.env['GOOGLE_GEMINI_API_KEY']?.isNotEmpty}',
+        );
+        debugPrint('SUPABASE_URL: ${dotenv.env['SUPABASE_URL']?.isNotEmpty}');
+      })
+      .catchError((e) {
+        debugPrint('Warning: .env file not found or invalid: $e');
+        debugPrint('Working directory: ${Directory.current.path}');
+      });
 
   // Initialize secure keys for release mode
   await SupabaseConfig.initialize();
+
+  // Verify env values after initialization
+  debugPrint(
+    'Supabase URL after init: ${SupabaseConfig.url.isNotEmpty ? "Set" : "Empty"}',
+  );
+  debugPrint(
+    'Supabase Anon Key after init: ${SupabaseConfig.anonKey.isNotEmpty ? "Set" : "Empty"}',
+  );
 
   // Initialize Supabase if URL and key are available
   try {
@@ -59,7 +83,11 @@ class MyApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('id', 'ID'), Locale('en', 'US')],
       locale: const Locale('id', 'ID'),
-      home: const HomeScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const HomeScreen(),
+        '/home': (context) => const HomeScreen(),
+      },
     );
   }
 }

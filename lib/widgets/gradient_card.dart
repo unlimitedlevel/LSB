@@ -12,7 +12,7 @@ class GradientCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const GradientCard({
-    Key? key,
+    super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.gradient,
@@ -21,7 +21,7 @@ class GradientCard extends StatelessWidget {
     this.height,
     this.shadow,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,12 @@ class GradientCard extends StatelessWidget {
                 ? [shadow!]
                 : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(
+                      red: 0,
+                      green: 0,
+                      blue: 0,
+                      alpha: 25,
+                    ),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -69,7 +74,7 @@ class StatCard extends StatelessWidget {
   final Widget? trailing;
 
   const StatCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.value,
     this.subtitle,
@@ -78,7 +83,7 @@ class StatCard extends StatelessWidget {
     this.onTap,
     this.iconColor,
     this.trailing,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +100,12 @@ class StatCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(
+                    red: 255,
+                    green: 255,
+                    blue: 255,
+                    alpha: 51,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: iconColor ?? Colors.white, size: 24),
@@ -126,7 +136,12 @@ class StatCard extends StatelessWidget {
             Text(
               subtitle!,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(
+                  red: 255,
+                  green: 255,
+                  blue: 255,
+                  alpha: 204,
+                ),
                 fontSize: 12,
               ),
             ),
@@ -146,14 +161,14 @@ class ActionCard extends StatelessWidget {
   final bool outlined;
 
   const ActionCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.onTap,
     this.gradient,
     this.outlined = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +178,7 @@ class ActionCard extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: AppTheme.primaryColor.withOpacity(0.3),
+            color: AppTheme.primaryColor.withAlpha(76),
             width: 1.5,
           ),
         ),
@@ -177,7 +192,7 @@ class ActionCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    color: AppTheme.primaryColor.withAlpha(25),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: AppTheme.primaryColor, size: 24),
@@ -201,7 +216,7 @@ class ActionCard extends StatelessWidget {
                           fontSize: 14,
                           color: Theme.of(
                             context,
-                          ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          ).textTheme.bodyMedium?.color?.withAlpha(179),
                         ),
                       ),
                     ],
@@ -223,7 +238,12 @@ class ActionCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(
+                red: 255.0,
+                green: 255.0,
+                blue: 255.0,
+                alpha: 51.0,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.white, size: 24),
@@ -245,14 +265,18 @@ class ActionCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(
+                      red: 255.0,
+                      green: 255.0,
+                      blue: 255.0,
+                      alpha: 204.0,
+                    ),
                     fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white),
         ],
       ),
     );

@@ -1,9 +1,11 @@
 import 'package:flutter/services.dart';
+import 'package:logging/logging.dart';
 
 /// Bridge untuk mendapatkan API key dari platform native
 /// dengan cara yang lebih aman (menggunakan platform channels)
 class SecureApiBridge {
   static const _channel = MethodChannel('com.lsb.ocr/secure_keys');
+  static final _logger = Logger('SecureApiBridge');
 
   /// Mendapatkan API key dari platform native
   /// Untuk Android akan mengambil dari BuildConfig
@@ -15,10 +17,10 @@ class SecureApiBridge {
       });
       return result;
     } on PlatformException catch (e) {
-      print('Error getting API key: ${e.message}');
+      _logger.warning('Error getting API key: ${e.message}');
       return '';
     } catch (e) {
-      print('Unexpected error: $e');
+      _logger.severe('Unexpected error: $e');
       return '';
     }
   }

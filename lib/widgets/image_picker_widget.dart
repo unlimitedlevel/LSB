@@ -17,7 +17,7 @@ class ImagePickerWidget extends StatefulWidget {
   final Map<String, dynamic>? extractedData;
 
   const ImagePickerWidget({
-    Key? key,
+    super.key,
     required this.isProcessing,
     this.selectedImage,
     this.webImage,
@@ -27,7 +27,7 @@ class ImagePickerWidget extends StatefulWidget {
     required this.onProcessEnd,
     this.errorMessage,
     this.extractedData,
-  }) : super(key: key);
+  });
 
   @override
   State<ImagePickerWidget> createState() => _ImagePickerWidgetState();

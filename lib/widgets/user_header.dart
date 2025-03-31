@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../config/app_theme.dart';
 import 'gradient_card.dart';
 
 class UserHeader extends StatelessWidget {
@@ -15,7 +14,7 @@ class UserHeader extends StatelessWidget {
   final VoidCallback? onStatsTap;
 
   const UserHeader({
-    Key? key,
+    super.key,
     required this.userName,
     required this.userPosition,
     this.userAvatar,
@@ -25,7 +24,7 @@ class UserHeader extends StatelessWidget {
     this.onNotificationTap,
     this.onProfileTap,
     this.onStatsTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +83,7 @@ class UserHeader extends StatelessWidget {
                     Text(
                       userPosition,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withAlpha(204),
                         fontSize: 14,
                       ),
                     ),
@@ -95,7 +94,7 @@ class UserHeader extends StatelessWidget {
                     if (onNotificationTap != null) ...[
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withAlpha(51),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
@@ -115,7 +114,7 @@ class UserHeader extends StatelessWidget {
                       onTap: onProfileTap,
                       child: CircleAvatar(
                         radius: 24,
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: Colors.white.withAlpha(51),
                         backgroundImage:
                             userAvatar != null
                                 ? NetworkImage(userAvatar!)
@@ -136,7 +135,7 @@ class UserHeader extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withAlpha(38),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
@@ -148,7 +147,7 @@ class UserHeader extends StatelessWidget {
                         Text(
                           'Total LSB',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withAlpha(179),
                             fontSize: 14,
                           ),
                         ),
@@ -158,13 +157,13 @@ class UserHeader extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withAlpha(51),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             'Lihat Detail',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withAlpha(230),
                               fontSize: 12,
                             ),
                           ),
@@ -201,7 +200,7 @@ class UserHeader extends StatelessWidget {
                                   Text(
                                     'Belum Selesai',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
+                                      color: Colors.white.withAlpha(179),
                                       fontSize: 12,
                                     ),
                                   ),
@@ -237,7 +236,7 @@ class UserHeader extends StatelessWidget {
                                   Text(
                                     'Selesai',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
+                                      color: Colors.white.withAlpha(179),
                                       fontSize: 12,
                                     ),
                                   ),

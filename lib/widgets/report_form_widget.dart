@@ -16,7 +16,7 @@ class ReportFormWidget extends StatefulWidget {
   final bool isLoading;
 
   const ReportFormWidget({
-    Key? key,
+    super.key,
     required this.reporterNameController,
     required this.reporterPositionController,
     required this.locationController,
@@ -29,7 +29,7 @@ class ReportFormWidget extends StatefulWidget {
     required this.onObservationTypeChanged,
     required this.onSubmit,
     required this.isLoading,
-  }) : super(key: key);
+  });
 
   @override
   State<ReportFormWidget> createState() => _ReportFormWidgetState();
