@@ -13,7 +13,9 @@ import '../utils/form_correction_utils.dart';
 import 'success_screen.dart';
 
 class ReportFormScreen extends StatefulWidget {
-  const ReportFormScreen({super.key});
+  final Map<String, dynamic>? initialData;
+
+  const ReportFormScreen({super.key, this.initialData});
 
   @override
   State<ReportFormScreen> createState() => _ReportFormScreenState();
@@ -41,6 +43,63 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Map<String, dynamic>? _extractedData;
 
   String _selectedObservationType = 'Unsafe Condition';
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFormData();
+  }
+
+  void _initializeFormData() {
+    if (widget.initialData != null) {
+      final data = widget.initialData!;
+
+      if (data['reporter_name'] != null) {
+        _reporterNameController.text = data['reporter_name'];
+      }
+
+      if (data['reporter_position'] != null) {
+        _reporterPositionController.text = data['reporter_position'];
+      }
+
+      if (data['location'] != null) {
+        _locationController.text = data['location'];
+      }
+
+      if (data['report_date'] != null) {
+        try {
+          _selectedDate = DateTime.parse(data['report_date']);
+        } catch (e) {
+          debugPrint('Error parsing date: $e');
+        }
+      }
+
+      if (data['observation_type'] != null) {
+        final observationType = data['observation_type'];
+        if ([
+          'Unsafe Condition',
+          'Unsafe Action',
+          'Intervensi',
+        ].contains(observationType)) {
+          _selectedObservationType = observationType;
+        }
+      }
+
+      if (data['hazard_description'] != null) {
+        _hazardDescriptionController.text = data['hazard_description'];
+      }
+
+      if (data['suggested_action'] != null) {
+        _suggestedActionController.text = data['suggested_action'];
+      }
+
+      if (data['lsb_number'] != null) {
+        _lsbNumberController.text = data['lsb_number'];
+      }
+
+      _extractedData = data;
+    }
+  }
 
   @override
   void dispose() {

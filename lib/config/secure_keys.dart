@@ -39,7 +39,12 @@ class SecureKeys {
         return '';
       }
     } else {
-      return dotenv.env['GOOGLE_GEMINI_API_KEY'] ?? '';
+      // Periksa kedua kunci yang mungkin
+      final key =
+          dotenv.env['GEMINI_API_KEY'] ??
+          dotenv.env['GOOGLE_GEMINI_API_KEY'] ??
+          '';
+      return key;
     }
   }
 

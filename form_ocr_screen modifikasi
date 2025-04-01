@@ -1,0 +1,370 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:typed_data';
+import '../services/supabase_service.dart'; // Pastikan path ini benar
+import '../models/hazard_report.dart'; // Pastikan path ini benar
+// import '../services/report_service.dart'; // Tidak digunakan lagi di screen ini
+import '../widgets/image_picker_widget.dart'; // Pastikan path ini benar
+import '../widgets/report_form_widget.dart'; // Pastikan path ini benar
+import '../utils/form_correction_utils.dart'; // Pastikan path ini benar
+import 'success_screen.dart'; // Pastikan path ini benar
+
+class ReportFormScreen extends StatefulWidget {
+  // Terima data awal (hasil OCR) - hanya data teks
+  final Map<String, dynamic>? initialData;
+
+  const ReportFormScreen({super.key, this.initialData});
+
+  @override
+  State<ReportFormScreen> createState() => _ReportFormScreenState();
+}
+
+class _ReportFormScreenState extends State<ReportFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  // Text Editing Controllers
+  final _reporterNameController = TextEditingController();
+  final _reporterPositionController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _hazardDescriptionController = TextEditingController();
+  final _suggestedActionController = TextEditingController();
+  final _lsbNumberController = TextEditingController();
+
+  // Form State Variables
+  DateTime _selectedDate = DateTime.now();
+  String _selectedObservationType = 'Unsafe Condition'; // Default value
+
+  // Image State Variables (hanya untuk gambar yang akan di-submit)
+  File? _selectedImage; // Mobile
+  Uint8List? _webImage; // Web
+
+  // Loading state for submission process
+  bool _isLoading = false;
+
+  // Services
+  final SupabaseService _supabaseService = SupabaseService();
+  // final ReportService _reportService = ReportService(); // Tidak perlu service OCR di sini
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFormData(); // Isi form dengan data awal jika ada
+  }
+
+  // Isi form dari initialData (hasil OCR)
+  void _initializeFormData() {
+    if (widget.initialData != null) {
+      final data = widget.initialData!;
+      debugPrint("Initializing form with data: $data"); // Log data awal
+
+      // Isi semua controller teks
+      _reporterNameController.text = data['reporter_name']?.toString() ?? '';
+      _reporterPositionController.text = data['reporter_position']?.toString() ?? '';
+      _locationController.text = data['location']?.toString() ?? '';
+      _hazardDescriptionController.text = data['hazard_description']?.toString() ?? '';
+      _suggestedActionController.text = data['suggested_action']?.toString() ?? '';
+      _lsbNumberController.text = data['lsb_number']?.toString() ?? '';
+
+      // Isi tanggal jika valid
+      if (data['report_date'] != null) {
+        try {
+          // Coba parse sebagai DateTime jika formatnya ISO, atau format lain jika perlu
+          // Asumsi format 'YYYY-MM-DD' atau ISO 8601
+          _selectedDate = DateTime.parse(data['report_date'].toString());
+        } catch (e) {
+          debugPrint("Error parsing initial date '${data['report_date']}': $e. Using current date.");
+          _selectedDate = DateTime.now(); // Fallback ke tanggal sekarang jika parse gagal
+        }
+      } else {
+         _selectedDate = DateTime.now(); // Gunakan tanggal sekarang jika tidak ada data awal
+      }
+
+      // Isi tipe observasi jika valid
+      if (data['observation_type'] != null) {
+        final observationType = data['observation_type'].toString();
+        // Pastikan tipe observasi valid sebelum di-set
+        if (['Unsafe Condition', 'Unsafe Action', 'Intervensi'].contains(observationType)) {
+          _selectedObservationType = observationType;
+        } else {
+           debugPrint("Invalid initial observation type: $observationType. Using default.");
+           _selectedObservationType = 'Unsafe Condition'; // Fallback ke default
+        }
+      } else {
+         _selectedObservationType = 'Unsafe Condition'; // Default jika tidak ada data awal
+      }
+
+      // Gambar tidak diinisialisasi dari initialData di versi ini
+      // Pengguna harus memilih gambar lagi di form ini untuk di-submit
+      _selectedImage = null;
+      _webImage = null;
+
+    } else {
+       // Jika tidak ada initialData, pastikan state awal bersih
+       _selectedDate = DateTime.now();
+       _selectedObservationType = 'Unsafe Condition';
+       _selectedImage = null;
+       _webImage = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    // Dispose semua controller
+    _reporterNameController.dispose();
+    _reporterPositionController.dispose();
+    _locationController.dispose();
+    _hazardDescriptionController.dispose();
+    _suggestedActionController.dispose();
+    _lsbNumberController.dispose();
+    super.dispose();
+  }
+
+  // --- Build Method ---
+  @override
+  Widget build(BuildContext context) {
+     final theme = Theme.of(context); // Dapatkan tema
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Form Laporan Bahaya'),
+        // Terapkan warna tema
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+      ),
+      // Gunakan SafeArea untuk menghindari notch/statusbar
+      body: SafeArea(
+        child: SingleChildScrollView( // Memungkinkan scroll jika konten > layar
+          child: Padding(
+            padding: const EdgeInsets.all(16.0), // Padding sekeliling
+            child: Form(
+              key: _formKey, // Kunci untuk validasi form
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch, // Lebarkan children
+                children: [
+                  // --- Bagian Upload Gambar ---
+                  Text(
+                    'Foto Sumber Bahaya', // Judul bagian gambar
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.primary
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ImagePickerWidget(
+                    // State untuk menampilkan preview gambar
+                    selectedImage: _selectedImage,
+                    webImage: _webImage,
+                    // Callback saat gambar dipilih (Mobile) -> hanya update state
+                    onImageSelected: (file) {
+                      if (mounted) {
+                        setState(() {
+                          _selectedImage = file;
+                          _webImage = null; // Reset web image jika mobile dipilih
+                        });
+                      }
+                    },
+                    // Callback saat gambar dipilih (Web) -> hanya update state
+                    onWebImageSelected: (bytes) {
+                       if (mounted) {
+                         setState(() {
+                           _webImage = bytes;
+                           _selectedImage = null; // Reset mobile image jika web dipilih
+                         });
+                       }
+                    },
+                    // Tidak ada lagi proses OCR di sini, jadi parameter ini dihilangkan:
+                    // isProcessing: _isProcessing, -> tidak ada OCR processing
+                    // onProcessStart: ...,
+                    // onProcessEnd: ...,
+                    // errorMessage: _ocrErrorMessage,
+                    // extractedData: _extractedData,
+                  ),
+                  const SizedBox(height: 24), // Spasi antar bagian
+
+                  // --- Form Detail Laporan ---
+                   Text(
+                    'Detail Laporan', // Judul bagian form
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.primary
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ReportFormWidget( // Widget form terpisah
+                    // Kirim controllers dan state ke widget form
+                    reporterNameController: _reporterNameController,
+                    reporterPositionController: _reporterPositionController,
+                    locationController: _locationController,
+                    hazardDescriptionController: _hazardDescriptionController,
+                    suggestedActionController: _suggestedActionController,
+                    lsbNumberController: _lsbNumberController,
+                    selectedDate: _selectedDate,
+                    selectedObservationType: _selectedObservationType,
+                    // Callback saat tanggal diubah di dalam form widget
+                    onDateSelected: (date) {
+                      if (mounted) {
+                        setState(() { _selectedDate = date; });
+                      }
+                    },
+                    // Callback saat tipe observasi diubah di dalam form widget
+                    onObservationTypeChanged: (type) {
+                      if (mounted) {
+                        setState(() { _selectedObservationType = type; });
+                      }
+                    },
+                    // Callback saat tombol submit di form widget ditekan
+                    onSubmit: _submitReport,
+                    // Kirim status loading untuk tombol submit
+                    isLoading: _isLoading,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- Submit Report Logic ---
+  Future<void> _submitReport() async {
+    // Validasi form sebelum submit
+    if (_formKey.currentState?.validate() ?? false) {
+      if (mounted) {
+        setState(() { _isLoading = true; }); // Tampilkan loading
+      }
+
+      try {
+        // 1. Upload gambar (jika ada)
+        String? uploadedImagePath;
+        if (_selectedImage != null || _webImage != null) {
+          uploadedImagePath = await _uploadImage();
+          // Opsional: Handle jika upload gagal?
+          if (uploadedImagePath == null && mounted) {
+             // Tampilkan error jika upload gagal tapi gambar dipilih
+             FormCorrectionUtils.showErrorDialog(context, 'Gagal mengunggah gambar. Laporan tidak dapat dikirim.');
+             setState(() { _isLoading = false; });
+             return; // Hentikan proses submit jika upload gagal
+          }
+        }
+
+        // 2. Buat objek HazardReport dari data form
+        final report = HazardReport(
+          // id: null, // ID akan dibuat oleh Supabase atau biarkan null
+          reporterName: _reporterNameController.text.trim(),
+          reporterPosition: _reporterPositionController.text.trim(),
+          location: _locationController.text.trim(),
+          reportDatetime: _selectedDate,
+          observationType: _selectedObservationType,
+          hazardDescription: _hazardDescriptionController.text.trim(),
+          suggestedAction: _suggestedActionController.text.trim(),
+          lsbNumber: _lsbNumberController.text.trim().isEmpty
+              ? null
+              : _lsbNumberController.text.trim(),
+          status: 'submitted', // Status default untuk laporan baru
+          imagePath: uploadedImagePath, // Gunakan path hasil upload
+          // createdAt: DateTime.now(), // Supabase bisa handle timestamp
+        );
+
+        // 3. Simpan laporan ke Supabase
+        final savedReportMap = await _supabaseService.saveHazardReport(report);
+
+        // 4. Reset loading state setelah selesai
+        if (!mounted) return;
+        setState(() { _isLoading = false; });
+
+        // 5. Konversi hasil simpan (Map) ke objek HazardReport
+        final savedReport = HazardReport.fromJson(savedReportMap);
+
+        // 6. Navigasi ke halaman sukses
+        Navigator.pushReplacement( // Ganti layar saat ini dengan layar sukses
+          context,
+          MaterialPageRoute(
+            builder: (context) => SuccessScreen(report: savedReport),
+          ),
+        );
+
+      } catch (e) {
+        debugPrint('Error submitting report: $e');
+        // Handle error saat submit
+        if (mounted) {
+          setState(() { _isLoading = false; }); // Matikan loading
+          // Tampilkan dialog error
+          FormCorrectionUtils.showErrorDialog(
+              context, 'Gagal mengirim laporan: ${e.toString()}');
+        }
+      }
+    } else {
+       // Jika validasi form gagal
+       debugPrint('Form validation failed.');
+       // Opsional: Tampilkan pesan bahwa validasi gagal
+       ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Harap isi semua field yang wajib diisi.'), backgroundColor: Colors.orange,)
+       );
+    }
+  }
+
+  // --- Image Upload Logic ---
+  Future<String?> _uploadImage() async {
+    // Pastikan ada gambar yang dipilih
+    if (_selectedImage == null && _webImage == null) return null;
+
+    try {
+      // Buat nama file unik
+      final String fileExtension = kIsWeb
+        ? (_webImage != null ? _getFileExtensionFromBytes(_webImage!) : 'bin') // Coba deteksi ekstensi dari bytes untuk web
+        : (_selectedImage!.path.contains('.') ? _selectedImage!.path.split('.').last : 'jpg'); // Ambil ekstensi dari path mobile
+      final String fileName = 'hazard_${const Uuid().v4()}.$fileExtension';
+      final String filePath = 'hazard-images/$fileName'; // Path di Supabase Storage
+
+      String? publicUrl;
+
+      if (kIsWeb && _webImage != null) {
+        // Upload bytes untuk Web
+        await Supabase.instance.client.storage
+            .from('hazard-images') // Nama bucket Anda
+            .uploadBinary(
+              filePath,
+              _webImage!,
+              fileOptions: const FileOptions(
+                cacheControl: '3600', // Cache selama 1 jam
+                upsert: false, // Jangan timpa jika file sudah ada (seharusnya tidak terjadi dengan UUID)
+              ),
+            );
+         publicUrl = _supabaseService.getImageUploadUrl(filePath); // Dapatkan URL publik
+      } else if (!kIsWeb && _selectedImage != null) {
+        // Upload File untuk Mobile
+        await Supabase.instance.client.storage
+            .from('hazard-images') // Nama bucket Anda
+            .upload(
+              filePath,
+              _selectedImage!,
+              fileOptions: const FileOptions(
+                cacheControl: '3600',
+                upsert: false,
+              ),
+            );
+         publicUrl = _supabaseService.getImageUploadUrl(filePath); // Dapatkan URL publik
+      }
+
+       debugPrint('Image uploaded successfully: $publicUrl');
+      return publicUrl;
+
+    } catch (e) {
+      debugPrint('Error uploading image: $e');
+      // Kembalikan null jika upload gagal
+      return null;
+    }
+  }
+
+  // Helper sederhana untuk mencoba menebak ekstensi file dari magic bytes (hanya contoh dasar)
+  String _getFileExtensionFromBytes(Uint8List bytes) {
+     if (bytes.length > 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
+       return 'jpg';
+     } else if (bytes.length > 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+       return 'png';
+     }
+     // Tambahkan deteksi lain jika perlu (GIF, WEBP, etc.)
+     return 'bin'; // Default jika tidak terdeteksi
+  }
+}

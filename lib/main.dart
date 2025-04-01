@@ -6,7 +6,10 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'dart:io';
 import 'config/app_theme.dart';
 import 'config/supabase_config.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_screen.dart';
+import 'screens/login_screen.dart'; // Import LoginScreen
+import 'services/auth_service.dart'; // Import AuthService
+import 'package:supabase_flutter/supabase_flutter.dart'; // Import Supabase for AuthState
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,11 +65,18 @@ void main() async {
     debugPrint('Error initializing Supabase: $e');
   }
 
-  runApp(const MyApp());
+  // Instance AuthService
+  final AuthService authService = AuthService();
+
+  runApp(
+    MyApp(authService: authService),
+  ); // Kirim instance AuthService ke MyApp
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthService authService; // Terima instance AuthService
+
+  const MyApp({super.key, required this.authService});
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +85,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.system, // Atau ThemeMode.light / ThemeMode.dark
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -83,11 +93,34 @@ class MyApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('id', 'ID'), Locale('en', 'US')],
       locale: const Locale('id', 'ID'),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const HomeScreen(),
-        '/home': (context) => const HomeScreen(),
-      },
+      // --- NONAKTIFKAN PEMERIKSAAN LOGIN SEMENTARA ---
+      // Langsung tampilkan MainScreen
+      home: MainScreen(authService: authService),
+      // home: StreamBuilder<AuthState>(
+      //   stream: authService.authStateChanges,
+      //   builder: (context, snapshot) {
+      //     // Tampilkan loading indicator saat menunggu status auth
+      //     if (snapshot.connectionState == ConnectionState.waiting) {
+      //       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      //     }
+
+      //     final AuthState? authState = snapshot.data;
+      //     // Jika ada sesi aktif (user login)
+      //     if (authState != null && authState.session != null) {
+      //       // Teruskan instance authService ke MainScreen
+      //       return MainScreen(authService: authService); // Tampilkan layar utama
+      //     } else {
+      //       // Jika tidak ada sesi (user logout atau belum login)
+      //       return const LoginScreen(); // Tampilkan layar login
+      //     }
+      //   },
+      // ),
+      // --- AKHIR NONAKTIFKAN LOGIN ---
+      // initialRoute: '/',
+      // routes: {
+      //   '/': (context) => const MainScreen(),
+      //   '/home': (context) => const HomeScreen(),
+      // },
     );
   }
 }

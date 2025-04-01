@@ -166,7 +166,7 @@ Pastikan daftar koreksi dalam correction_report memberikan detail yang jelas nam
 
           // Jika error, catat lalu coba lagi
           debugPrint(
-            'Retry ${currentTry + 1}/${maxRetries}: Status code: ${response.statusCode}',
+            'Retry $currentTry/$maxRetries: Status code: ${response.statusCode}',
           );
           currentTry++;
 
@@ -175,9 +175,7 @@ Pastikan daftar koreksi dalam correction_report memberikan detail yang jelas nam
             await Future.delayed(Duration(seconds: 2 * currentTry));
           }
         } catch (e) {
-          debugPrint(
-            'Error pada percobaan ${currentTry + 1}/${maxRetries}: $e',
-          );
+          debugPrint('Error pada percobaan $currentTry/$maxRetries: $e');
           currentTry++;
 
           // Tunggu sebentar sebelum mencoba lagi (exponential backoff)

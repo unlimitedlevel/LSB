@@ -1,82 +1,111 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/hazard_report.dart';
-import 'report_detail_widgets.dart';
 
 class SystemInfoSection extends StatelessWidget {
   final HazardReport report;
+  final ThemeData? theme;
 
-  const SystemInfoSection({super.key, required this.report});
+  const SystemInfoSection({super.key, required this.report, this.theme});
 
   @override
   Widget build(BuildContext context) {
-    final dateFormatter = DateFormat('dd MMM yyyy HH:mm', 'id_ID');
+    final currentTheme = theme ?? Theme.of(context);
+    final dateFormatter = DateFormat('dd MMM yyyy, HH:mm:ss', 'id_ID');
+    final id = report.id ?? 'N/A';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Divider(),
-        const SizedBox(height: 16),
-        const Text(
-          'Informasi Sistem',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-
-        // Tanggal dibuat
-        if (report.createdAt != null)
-          InfoRow(
-            label: 'Dibuat pada',
-            value: dateFormatter.format(report.createdAt!),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: currentTheme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Informasi Sistem', style: currentTheme.textTheme.titleSmall),
+          const Divider(height: 16),
+          Row(
+            children: [
+              const Icon(Icons.tag, size: 16),
+              const SizedBox(width: 8),
+              Text('ID Laporan: ', style: currentTheme.textTheme.labelMedium),
+              Expanded(
+                child: Text(
+                  id.toString(),
+                  style: currentTheme.textTheme.bodyMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-
-        // Tanggal diupdate
-        if (report.updatedAt != null)
-          InfoRow(
-            label: 'Terakhir diupdate',
-            value: dateFormatter.format(report.updatedAt!),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.access_time, size: 16),
+              const SizedBox(width: 8),
+              Text('Dibuat pada: ', style: currentTheme.textTheme.labelMedium),
+              Text(
+                report.createdAt != null
+                    ? dateFormatter.format(report.createdAt!)
+                    : 'N/A',
+                style: currentTheme.textTheme.bodyMedium,
+              ),
+            ],
           ),
-
-        // Informasi validasi
-        if (report.validatedAt != null)
-          InfoRow(
-            label: 'Divalidasi pada',
-            value: dateFormatter.format(report.validatedAt!),
-          ),
-
-        if (report.validatedBy != null && report.validatedBy!.isNotEmpty)
-          InfoRow(label: 'Divalidasi oleh', value: report.validatedBy!),
-
-        if (report.validationNotes != null &&
-            report.validationNotes!.isNotEmpty)
-          InfoRow(label: 'Catatan validasi', value: report.validationNotes!),
-
-        // Informasi tindak lanjut
-        if (report.followedUpAt != null)
-          InfoRow(
-            label: 'Ditindaklanjuti pada',
-            value: dateFormatter.format(report.followedUpAt!),
-          ),
-
-        if (report.followedUpBy != null && report.followedUpBy!.isNotEmpty)
-          InfoRow(label: 'Ditindaklanjuti oleh', value: report.followedUpBy!),
-
-        if (report.followUp != null && report.followUp!.isNotEmpty)
-          InfoRow(label: 'Tindakan', value: report.followUp!),
-
-        // Informasi penutupan
-        if (report.closedAt != null)
-          InfoRow(
-            label: 'Ditutup pada',
-            value: dateFormatter.format(report.closedAt!),
-          ),
-
-        if (report.closedBy != null && report.closedBy!.isNotEmpty)
-          InfoRow(label: 'Ditutup oleh', value: report.closedBy!),
-
-        if (report.closingNotes != null && report.closingNotes!.isNotEmpty)
-          InfoRow(label: 'Catatan penutupan', value: report.closingNotes!),
-      ],
+          if (report.updatedAt != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.update, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Terakhir diupdate: ',
+                  style: currentTheme.textTheme.labelMedium,
+                ),
+                Text(
+                  dateFormatter.format(report.updatedAt!),
+                  style: currentTheme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ],
+          if (report.validatedAt != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.verified, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Divalidasi pada: ',
+                  style: currentTheme.textTheme.labelMedium,
+                ),
+                Text(
+                  dateFormatter.format(report.validatedAt!),
+                  style: currentTheme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ],
+          if (report.validatedBy != null && report.validatedBy!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.person, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Divalidasi oleh: ',
+                  style: currentTheme.textTheme.labelMedium,
+                ),
+                Text(
+                  report.validatedBy!,
+                  style: currentTheme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

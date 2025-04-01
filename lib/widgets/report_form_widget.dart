@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Tambahkan import intl
 import '../config/app_theme.dart';
 
 class ReportFormWidget extends StatefulWidget {
@@ -38,12 +39,15 @@ class ReportFormWidget extends StatefulWidget {
 class _ReportFormWidgetState extends State<ReportFormWidget> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context); // Ambil tema
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Detail Laporan',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        // --- Judul Bagian Pelapor ---
+        Text(
+          'Informasi Pelapor',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
 
@@ -81,6 +85,14 @@ class _ReportFormWidgetState extends State<ReportFormWidget> {
         ),
         const SizedBox(height: 16),
 
+        // --- Judul Bagian Kejadian ---
+        const Divider(height: 32, thickness: 1),
+        Text(
+          'Detail Kejadian',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+
         // Lokasi Bahaya
         TextFormField(
           controller: widget.locationController,
@@ -98,96 +110,55 @@ class _ReportFormWidgetState extends State<ReportFormWidget> {
         ),
         const SizedBox(height: 16),
 
-        // Tanggal Laporan
-        InkWell(
-          onTap: _selectDate,
-          child: InputDecorator(
-            decoration: InputDecoration(
-              labelText: 'Tanggal Laporan',
-              hintText: 'Pilih tanggal laporan',
-              prefixIcon: const Icon(Icons.calendar_today),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year}',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const Icon(Icons.arrow_drop_down),
-              ],
-            ),
+        // Tanggal Laporan - Tampilan Lebih Baik
+        TextFormField(
+          readOnly: true, // Agar tidak bisa diketik manual
+          controller: TextEditingController(
+            text: DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(widget.selectedDate), // Format tanggal lengkap
           ),
+          decoration: InputDecoration(
+            labelText: 'Tanggal Laporan',
+            prefixIcon: const Icon(Icons.calendar_today_outlined),
+            suffixIcon: const Icon(Icons.arrow_drop_down_rounded), // Indikator dropdown
+            // Gunakan style dari tema
+          ),
+          onTap: _selectDate, // Panggil _selectDate saat ditekan
         ),
         const SizedBox(height: 16),
 
-        // Jenis Pengamatan
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Jenis Pengamatan',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.normal,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text(
-                      'Unsafe Condition',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    value: 'Unsafe Condition',
-                    groupValue: widget.selectedObservationType,
-                    onChanged: (value) {
-                      if (value != null) {
-                        widget.onObservationTypeChanged(value);
-                      }
-                    },
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
+        // Jenis Pengamatan - Layout Lebih Rapi
+        Text('Jenis Pengamatan', style: theme.textTheme.bodyLarge),
+        const SizedBox(height: 8),
+        Wrap( // Gunakan Wrap agar fleksibel di berbagai ukuran layar
+          spacing: 8.0, // Jarak horizontal antar radio
+          runSpacing: 0.0, // Jarak vertikal jika wrap ke baris baru
+          children: <String>['Unsafe Condition', 'Unsafe Action', 'Intervensi']
+              .map((String value) {
+            return Row(
+              mainAxisSize: MainAxisSize.min, // Agar Row tidak memanjang penuh
+              children: <Widget>[
+                Radio<String>(
+                  value: value,
+                  groupValue: widget.selectedObservationType,
+                  onChanged: (newValue) {
+                    if (newValue != null) {
+                      widget.onObservationTypeChanged(newValue);
+                    }
+                  },
+                  visualDensity: VisualDensity.compact, // Lebih rapat
                 ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text(
-                      'Unsafe Action',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    value: 'Unsafe Action',
-                    groupValue: widget.selectedObservationType,
-                    onChanged: (value) {
-                      if (value != null) {
-                        widget.onObservationTypeChanged(value);
-                      }
-                    },
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+                Text(value, style: theme.textTheme.bodyMedium),
               ],
-            ),
-            RadioListTile<String>(
-              title: const Text('Intervensi', style: TextStyle(fontSize: 14)),
-              value: 'Intervensi',
-              groupValue: widget.selectedObservationType,
-              onChanged: (value) {
-                if (value != null) {
-                  widget.onObservationTypeChanged(value);
-                }
-              },
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
-          ],
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+
+        // --- Judul Bagian Deskripsi ---
+        const Divider(height: 32, thickness: 1),
+        Text(
+          'Deskripsi & Saran',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
 
@@ -227,59 +198,56 @@ class _ReportFormWidgetState extends State<ReportFormWidget> {
         ),
         const SizedBox(height: 16),
 
-        // Nomor LSB
+        // Nomor LSB (Opsional)
         TextFormField(
           controller: widget.lsbNumberController,
           decoration: const InputDecoration(
-            labelText: 'Nomor LSB',
-            hintText: 'Masukkan nomor LSB (opsional)',
-            prefixIcon: Icon(Icons.numbers),
+            labelText: 'Nomor LSB (Opsional)', // Tambahkan (Opsional)
+            hintText: 'Contoh: 001-LSB-XYZ',
+            prefixIcon: Icon(Icons.tag), // Ganti ikon
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 32), // Spasi lebih besar sebelum tombol
 
-        // Tombol Submit
+        // Tombol Submit - Style Disesuaikan
         SizedBox(
           width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
+          child: ElevatedButton.icon( // Gunakan ElevatedButton.icon
             onPressed: widget.isLoading ? null : widget.onSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child:
-                widget.isLoading
-                    ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                    : const Text(
-                      'KIRIM LAPORAN',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+            icon: widget.isLoading
+                ? Container( // Indikator loading dalam tombol
+                    width: 24,
+                    height: 24,
+                    padding: const EdgeInsets.all(2.0),
+                    child: const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
                     ),
+                  )
+                : const Icon(Icons.send_rounded), // Ikon kirim
+            label: Text(
+              widget.isLoading ? 'MENGIRIM...' : 'KIRIM LAPORAN',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16), // Padding vertikal
+              textStyle: theme.textTheme.titleMedium, // Ukuran teks
+              // Style lain diambil dari tema (primary color, shape)
+            ),
           ),
         ),
       ],
     );
   }
 
+  // Fungsi pemilih tanggal
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: widget.selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 1)), // Batasi hingga besok
+      locale: const Locale('id', 'ID'), // Pastikan locale Indonesia
     );
 
     if (picked != null && picked != widget.selectedDate) {

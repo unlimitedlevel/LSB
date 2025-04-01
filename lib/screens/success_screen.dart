@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/hazard_report.dart';
+import 'package:lottie/lottie.dart'; // Import Lottie jika ingin menggunakan animasi
 import '../config/app_theme.dart';
 
 class SuccessScreen extends StatelessWidget {
@@ -10,47 +11,46 @@ class SuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
+    final theme = Theme.of(context); // Ambil tema
+    final dateFormatter = DateFormat('EEEE, dd MMMM yyyy', 'id_ID'); // Format tanggal lebih lengkap
     final formattedDate =
         report.reportDatetime != null
             ? dateFormatter.format(report.reportDatetime!)
             : 'Tanggal tidak tersedia';
 
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (bool didPop, bool? result) {
+      canPop: false, // Cegah kembali ke form
+      onPopInvoked: (bool didPop) { // Gunakan onPopInvoked
         if (!didPop) {
           _navigateToHome(context);
         }
-        return;
       },
       child: Scaffold(
+        backgroundColor: theme.colorScheme.surface, // Warna background konsisten
         body: SafeArea(
           child: Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0), // Sesuaikan padding
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 48),
-                        _buildSuccessIcon(),
-                        const SizedBox(height: 24),
-                        _buildSuccessTitle(),
-                        const SizedBox(height: 16),
-                        _buildSuccessMessage(),
-                        const SizedBox(height: 32),
-                        _buildDivider(),
-                        const SizedBox(height: 32),
-                        _buildReportDetails(formattedDate),
+                        const SizedBox(height: 32), // Spasi atas
+                        _buildSuccessIcon(theme), // Kirim tema
+                        const SizedBox(height: 28),
+                        _buildSuccessTitle(theme), // Kirim tema
+                        const SizedBox(height: 12),
+                        _buildSuccessMessage(theme), // Kirim tema
+                        const SizedBox(height: 40),
+                        _buildReportDetailsCard(theme, formattedDate), // Bungkus detail dalam Card
                       ],
                     ),
                   ),
                 ),
               ),
-              _buildBottomButtons(context),
+              _buildBottomButtons(context, theme), // Kirim tema
             ],
           ),
         ),
@@ -58,122 +58,146 @@ class SuccessScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSuccessIcon() {
+  // Icon sukses yang lebih modern (bisa pakai Lottie jika ditambahkan)
+  Widget _buildSuccessIcon(ThemeData theme) {
+    // Contoh jika pakai Lottie (perlu tambahkan lottie: ^3.1.0 di pubspec.yaml dan file aset)
+    // return Lottie.asset('assets/animations/success_check.json', width: 150, height: 150, repeat: false);
+
+    // Alternatif dengan Icon
     return Container(
-      width: 120,
-      height: 120,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: Colors.green.withOpacity(0.1), // Warna lebih lembut
         shape: BoxShape.circle,
       ),
-      child: Icon(Icons.check_circle, size: 80, color: Colors.green.shade500),
-    );
-  }
-
-  Widget _buildSuccessTitle() {
-    return const Text(
-      'Laporan Terkirim!',
-      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-    );
-  }
-
-  Widget _buildSuccessMessage() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.0),
-      child: Text(
-        'Terima kasih atas kontribusi Anda dalam menciptakan lingkungan kerja yang lebih aman. Laporan Anda telah terkirim dan akan segera ditindaklanjuti.',
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 16, color: Colors.grey),
+      child: Icon(
+        Icons.check_circle_outline_rounded, // Ikon outline
+        size: 80,
+        color: Colors.green.shade600, // Warna ikon lebih solid
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return const Divider(thickness: 1, height: 1);
-  }
-
-  Widget _buildReportDetails(String formattedDate) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Ringkasan Laporan',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        _buildDetailItem(
-          icon: Icons.location_on,
-          title: 'Lokasi',
-          content: report.location ?? 'Tidak tersedia',
-        ),
-        _buildDetailItem(
-          icon: Icons.calendar_today,
-          title: 'Tanggal',
-          content: formattedDate,
-        ),
-        _buildDetailItem(
-          icon: Icons.warning,
-          title: 'Deskripsi Bahaya',
-          content: report.hazardDescription ?? 'Tidak tersedia',
-        ),
-        _buildDetailItem(
-          icon: Icons.build,
-          title: 'Saran Tindakan',
-          content: report.suggestedAction ?? 'Tidak tersedia',
-        ),
-        _buildDetailItem(
-          icon: Icons.person,
-          title: 'Dilaporkan oleh',
-          content: report.reporterName ?? 'Tidak tersedia',
-        ),
-        const SizedBox(height: 8),
-        _buildDetailRow(
-          'Jenis Pengamatan:',
-          report.observationType ?? 'Unsafe Condition',
-        ),
-        if (report.lsbNumber != null && report.lsbNumber!.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          _buildDetailRow('Nomor LSB:', report.lsbNumber!),
-        ],
-        const SizedBox(height: 16),
-        const Text(
-          'Detail Bahaya:',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-      ],
+  // Judul sukses dengan style tema
+  Widget _buildSuccessTitle(ThemeData theme) {
+    return Text(
+      'Laporan Terkirim!',
+      style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+      textAlign: TextAlign.center,
     );
   }
 
+  // Pesan sukses dengan style tema
+  Widget _buildSuccessMessage(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0), // Padding horizontal
+      child: Text(
+        'Terima kasih! Laporan Anda telah berhasil dikirim dan akan segera ditinjau.', // Pesan lebih singkat
+        textAlign: TextAlign.center,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant, // Warna teks sesuai tema
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+
+  // Widget untuk menampilkan detail dalam Card
+  Widget _buildReportDetailsCard(ThemeData theme, String formattedDate) {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: theme.cardTheme.color ?? theme.colorScheme.surfaceContainerLowest, // Warna card
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ringkasan Laporan',
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const Divider(height: 24, thickness: 0.5), // Pemisah
+            _buildDetailItem(
+              theme: theme,
+              icon: Icons.location_on_outlined,
+              title: 'Lokasi',
+              content: report.location ?? 'Tidak tersedia',
+            ),
+            _buildDetailItem(
+              theme: theme,
+              icon: Icons.calendar_today_outlined,
+              title: 'Tanggal',
+              content: formattedDate,
+            ),
+             _buildDetailItem(
+              theme: theme,
+              icon: Icons.remove_red_eye_outlined,
+              title: 'Jenis Pengamatan',
+              content: report.observationType ?? 'Tidak ditentukan',
+            ),
+            _buildDetailItem(
+              theme: theme,
+              icon: Icons.description_outlined,
+              title: 'Deskripsi Bahaya',
+              content: report.hazardDescription ?? 'Tidak tersedia',
+              isLongText: true,
+            ),
+            _buildDetailItem(
+              theme: theme,
+              icon: Icons.build_circle_outlined,
+              title: 'Saran Tindakan',
+              content: report.suggestedAction ?? 'Tidak tersedia',
+              isLongText: true,
+            ),
+            _buildDetailItem(
+              theme: theme,
+              icon: Icons.person_outline,
+              title: 'Dilaporkan oleh',
+              content: report.reporterName ?? 'Tidak tersedia',
+            ),
+            if (report.lsbNumber != null && report.lsbNumber!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _buildDetailRow(theme, 'Nomor LSB:', report.lsbNumber!),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Item detail dengan style yang disesuaikan
   Widget _buildDetailItem({
+    required ThemeData theme,
     required IconData icon,
     required String title,
     required String content,
+    bool isLongText = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0), // Padding vertikal
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withAlpha(25),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: AppTheme.primaryColor, size: 20),
-          ),
-          const SizedBox(width: 12),
+          Icon(icon, color: theme.colorScheme.primary, size: 22), // Ukuran ikon
+          const SizedBox(width: 16), // Jarak ikon ke teks
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  style: theme.textTheme.labelLarge?.copyWith( // Label lebih besar
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(content, style: const TextStyle(fontSize: 16)),
+                Text(
+                  content,
+                  style: theme.textTheme.bodyLarge?.copyWith( // Konten lebih besar
+                    height: isLongText ? 1.4 : 1.2,
+                  ),
+                ),
               ],
             ),
           ),
@@ -182,50 +206,63 @@ class SuccessScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomButtons(BuildContext context) {
+  // Tombol bawah dengan style tema
+  Widget _buildBottomButtons(BuildContext context, ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => _navigateToHome(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-                shadowColor: Theme.of(context).primaryColor.withAlpha(38),
-              ),
-              child: const Text(
-                'Kembali ke Beranda',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20), // Padding
+      decoration: BoxDecoration( // Beri sedikit shadow di atas tombol
+         color: theme.colorScheme.surface,
+         boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, -4),
+            )
+         ]
+      ),
+      child: SizedBox( // Gunakan SizedBox untuk tinggi tombol yang konsisten
+        width: double.infinity,
+        height: 52, // Tinggi tombol
+        child: ElevatedButton(
+          onPressed: () => _navigateToHome(context),
+          style: ElevatedButton.styleFrom(
+            // Style diambil dari tema
+            textStyle: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
-        ],
+          child: const Text('Kembali ke Beranda'),
+        ),
       ),
     );
   }
 
+  // Navigasi ke home
   void _navigateToHome(BuildContext context) {
-    Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+    // Gunakan '/home' jika itu rute MainScreen atau sesuaikan
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
-  Widget _buildDetailRow(String label, String content) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Text(content, style: const TextStyle(fontSize: 16))),
-      ],
+  // Detail row (jika masih diperlukan)
+  Widget _buildDetailRow(ThemeData theme, String label, String content) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              content,
+              style: theme.textTheme.bodyLarge,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

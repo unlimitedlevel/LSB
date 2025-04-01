@@ -1,0 +1,381 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Pastikan package intl ada di pubspec.yaml
+import '../models/hazard_report.dart'; // Pastikan path ini benar
+import '../widgets/report_detail_widgets.dart'; // Pastikan path ini benar
+import '../widgets/system_info_section.dart'; // Pastikan path ini benar
+
+class ReportDetailScreen extends StatelessWidget {
+  final HazardReport report;
+
+  const ReportDetailScreen({super.key, required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context); // Dapatkan tema saat ini
+    // Format tanggal dan waktu dengan locale Indonesia
+    final dateFormatter = DateFormat('dd MMMM yyyy, HH:mm', 'id_ID');
+    final formattedDate = report.reportDatetime != null
+        ? dateFormatter.format(report.reportDatetime!)
+        : 'Tanggal tidak tersedia';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Detail Laporan'),
+        // Gunakan warna dari tema, elevasi 0 sudah bagus
+        backgroundColor: theme.colorScheme.surface, // Atau surfaceContainerHighest
+        foregroundColor: theme.colorScheme.onSurfaceVariant,
+        elevation: 0, // AppBar tanpa shadow
+      ),
+      // Gunakan SafeArea untuk layout yang aman dari notch/statusbar
+      body: SafeArea(
+        child: SingleChildScrollView( // Aktifkan scroll jika konten panjang
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, // Rata kiri untuk Column utama
+            children: [
+              // --- Bagian Gambar Laporan ---
+              _buildImageSection(context, theme), // Helper widget untuk gambar
+              const SizedBox(height: 8), // Spasi setelah gambar
+
+              // --- Bagian Status & Informasi Header ---
+              // Beri background dan padding agar sedikit terpisah dan menonjol
+              Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                 // Gunakan warna background yang lembut dari tema
+                 color: theme.colorScheme.surfaceContainerLowest,
+                 child: ReportHeaderInfo( // Widget kustom Anda
+                   lsbNumber: report.lsbNumber,
+                   statusText: report.statusTranslated,
+                   statusColor: report.statusColor,
+                   // Anda bisa menambahkan parameter theme jika widget ini mendukungnya
+                   // theme: theme,
+                 ),
+              ),
+              // Opsional: Divider tipis di bawah header
+              // const Divider(height: 1, thickness: 1),
+
+              // --- Bagian Detail Laporan ---
+              Padding(
+                // Padding lebih besar untuk konten detail agar tidak terlalu mepet
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Lokasi
+                    ReportDetailSection( // Widget kustom Anda
+                      title: 'Lokasi',
+                      content: report.location ?? 'Tidak tersedia',
+                      icon: Icons.location_on_outlined, // Gunakan ikon outline
+                      theme: theme, // Kirim tema jika widget mendukung
+                    ),
+                    const SizedBox(height: 18), // Spasi konsisten antar section
+
+                    // Tanggal Laporan
+                    ReportDetailSection( // Widget kustom Anda
+                      title: 'Tanggal & Waktu Laporan', // Lebih spesifik
+                      content: formattedDate,
+                      icon: Icons.calendar_today_outlined, // Gunakan ikon outline
+                      theme: theme, // Kirim tema jika widget mendukung
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Pelapor
+                    ReportDetailSection( // Widget kustom Anda
+                      title: 'Dilaporkan oleh',
+                      // Gabungkan nama dan posisi dengan penanganan null
+                      content:
+                          '${report.reporterName ?? 'Anonim'} (${report.reporterPosition ?? 'Jabatan tidak diketahui'})',
+                      icon: Icons.person_outline, // Gunakan ikon outline
+                      theme: theme, // Kirim tema jika widget mendukung
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Jenis Pengamatan
+                    ReportDetailSection( // Widget kustom Anda
+                      title: 'Jenis Pengamatan',
+                      content: report.observationType ?? 'Tidak ditentukan',
+                      icon: Icons.remove_red_eye_outlined, // Ikon yang lebih relevan
+                      theme: theme, // Kirim tema jika widget mendukung
+                    ),
+                    const SizedBox(height: 24), // Spasi lebih besar sebelum deskripsi
+
+                    // Deskripsi Bahaya
+                    ReportDetailSection( // Widget kustom Anda
+                      title: 'Deskripsi Bahaya',
+                      content: report.hazardDescription ?? 'Tidak ada deskripsi.',
+                      icon: Icons.description_outlined, // Gunakan ikon outline
+                      isLongText: true, // Tandai jika teks mungkin panjang
+                      theme: theme, // Kirim tema jika widget mendukung
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Saran Tindakan
+                    ReportDetailSection( // Widget kustom Anda
+                      title: 'Saran Tindakan Perbaikan',
+                      content: report.suggestedAction ?? 'Tidak ada saran.',
+                      icon: Icons.build_circle_outlined, // Gunakan ikon outline
+                      isLongText: true, // Tandai jika teks mungkin panjang
+                      theme: theme, // Kirim tema jika widget mendukung
+                    ),
+                    const SizedBox(height: 24), // Spasi sebelum info sistem
+
+                    // Informasi Sistem (jika ada)
+                    SystemInfoSection(report: report), // Widget kustom Anda
+                    const SizedBox(height: 20), // Spasi di bagian paling bawah
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper widget terpisah untuk menampilkan gambar dan placeholder/error
+  Widget _buildImageSection(BuildContext context, ThemeData theme) {
+    // Cek jika path gambar valid (tidak null dan tidak kosong)
+    if (report.imagePath == null || report.imagePath!.trim().isEmpty) {
+      // Tampilkan placeholder jika tidak ada gambar sama sekali
+      return Container(
+        height: 200, // Tinggi placeholder
+        width: double.infinity,
+        // Warna background placeholder dari tema
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.image_not_supported_outlined, // Ikon placeholder
+                size: 50,
+                // Warna ikon dari tema
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tidak ada gambar', // Teks placeholder
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Tampilkan gambar jika ada path yang valid
+    return Container(
+      height: 250, // Tinggi area gambar
+      width: double.infinity,
+      // Background lembut saat gambar sedang loading atau jika ada error
+      color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+      child: ClipRRect( // Terapkan rounded corners jika diinginkan
+         // borderRadius: BorderRadius.circular(0), // Atau BorderRadius.circular(12)
+         child: Image.network(
+           report.imagePath!,
+           fit: BoxFit.cover, // Agar gambar memenuhi area container
+           // Loading builder untuk menampilkan indikator saat gambar dimuat
+           loadingBuilder: (context, child, loadingProgress) {
+             // Jika sudah selesai loading, tampilkan gambar
+             if (loadingProgress == null) return child;
+             // Jika masih loading, tampilkan CircularProgressIndicator
+             return Center(
+               child: CircularProgressIndicator(
+                 // Hitung progress jika memungkinkan
+                 value: loadingProgress.expectedTotalBytes != null
+                     ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                     : null, // Indeterminate jika total bytes tidak diketahui
+                 strokeWidth: 2.5, // Ketebalan garis progress
+                 // Gunakan warna primer tema untuk indikator
+                 color: theme.colorScheme.primary,
+               ),
+             );
+           },
+           // Error builder jika gambar gagal dimuat
+           errorBuilder: (context, error, stackTrace) {
+             // Log error untuk debugging
+             debugPrint("Error loading image ${report.imagePath}: $error");
+             // Tampilkan UI error yang informatif
+             return Center(
+               child: Column(
+                 mainAxisAlignment: MainAxisAlignment.center,
+                 children: [
+                   Icon(
+                     Icons.broken_image_outlined, // Ikon error
+                     size: 50,
+                     // Gunakan warna error dari tema
+                     color: theme.colorScheme.error.withOpacity(0.8),
+                   ),
+                   const SizedBox(height: 8),
+                   Padding(
+                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                     child: Text(
+                       'Gagal memuat gambar', // Teks error
+                       textAlign: TextAlign.center,
+                       style: theme.textTheme.bodyMedium?.copyWith(
+                         color: theme.colorScheme.error.withOpacity(0.8),
+                       ),
+                     ),
+                   ),
+                 ],
+               ),
+             );
+           },
+         ),
+      ),
+    );
+  }
+}
+
+// --- Asumsi Definisi Widget Kustom (Hanya untuk Konteks) ---
+// Anda HARUS memiliki implementasi widget ini di file lain agar kode di atas berjalan
+
+/*
+class ReportHeaderInfo extends StatelessWidget {
+  final String? lsbNumber;
+  final String statusText;
+  final Color statusColor;
+  final ThemeData? theme; // Opsional: tambahkan theme jika perlu
+  const ReportHeaderInfo({
+    Key? key,
+    this.lsbNumber,
+    required this.statusText,
+    required this.statusColor,
+    this.theme,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final currentTheme = theme ?? Theme.of(context); // Gunakan theme dari parameter atau context
+    // Implementasi UI untuk header (LSB Number & Status Chip)
+    // Contoh:
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (lsbNumber != null && lsbNumber!.isNotEmpty)
+            Text(
+              'No. LSB: $lsbNumber',
+              style: currentTheme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+            )
+          else
+            const SizedBox(), // Spacer jika tidak ada LSB number
+          Chip(
+            label: Text(statusText),
+            labelStyle: currentTheme.textTheme.labelSmall?.copyWith(
+              color: statusColor.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+            backgroundColor: statusColor,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            visualDensity: VisualDensity.compact,
+            side: BorderSide.none,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ReportDetailSection extends StatelessWidget {
+  final String title;
+  final String content;
+  final IconData icon;
+  final bool isLongText;
+  final ThemeData? theme; // Tambahkan parameter theme
+
+  const ReportDetailSection({
+    Key? key,
+    required this.title,
+    required this.content,
+    required this.icon,
+    this.isLongText = false,
+    this.theme, // Terima theme
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Gunakan theme dari parameter atau dari context jika null
+    final currentTheme = theme ?? Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: currentTheme.colorScheme.secondary), // Gunakan warna tema
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: currentTheme.textTheme.labelMedium?.copyWith( // Gunakan style tema
+                  color: currentTheme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                content,
+                style: currentTheme.textTheme.bodyLarge?.copyWith( // Gunakan style tema
+                  height: isLongText ? 1.4 : 1.2, // Atur line height untuk teks panjang
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class SystemInfoSection extends StatelessWidget {
+  final HazardReport report;
+  final ThemeData? theme; // Opsional: tambahkan theme jika perlu
+  const SystemInfoSection({Key? key, required this.report, this.theme}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+     final currentTheme = theme ?? Theme.of(context);
+     final id = report.id ?? 'N/A'; // Handle null ID
+     final createdAtFormatted = report.createdAt != null
+        ? DateFormat('dd MMM yyyy, HH:mm:ss', 'id_ID').format(report.createdAt!)
+        : 'N/A';
+
+    // Implementasi UI untuk menampilkan ID dan Created At
+    // Contoh:
+    return Container(
+       padding: const EdgeInsets.all(12),
+       decoration: BoxDecoration(
+          color: currentTheme.colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(8),
+       ),
+       child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+             Text('Informasi Sistem', style: currentTheme.textTheme.titleSmall),
+             const Divider(height: 16),
+             Row(
+                children: [
+                   const Icon(Icons.tag, size: 16),
+                   const SizedBox(width: 8),
+                   Text('ID Laporan: ', style: currentTheme.textTheme.labelMedium),
+                   Expanded(child: Text(id.toString(), style: currentTheme.textTheme.bodyMedium, overflow: TextOverflow.ellipsis)),
+                ],
+             ),
+             const SizedBox(height: 8),
+              Row(
+                children: [
+                   const Icon(Icons.access_time, size: 16),
+                   const SizedBox(width: 8),
+                   Text('Dibuat pada: ', style: currentTheme.textTheme.labelMedium),
+                   Text(createdAtFormatted, style: currentTheme.textTheme.bodyMedium),
+                ],
+             ),
+          ],
+       ),
+    );
+  }
+}
+*/
+

@@ -2,11 +2,12 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:dotted_border/dotted_border.dart'; // Import untuk border putus-putus
 import 'package:image_picker/image_picker.dart';
-import 'package:lsb_ocr/services/report_service.dart';
-import 'package:lsb_ocr/utils/form_correction_utils.dart';
-import 'package:lsb_ocr/screens/report_form_screen.dart';
-import 'package:lsb_ocr/config/app_theme.dart';
+import '../services/report_service.dart';
+import '../utils/form_correction_utils.dart';
+import 'report_form_screen.dart';
+import '../config/app_theme.dart'; // Import AppTheme
 
 class FormOCRScreen extends StatefulWidget {
   const FormOCRScreen({super.key});
@@ -24,6 +25,8 @@ class _FormOCRScreenState extends State<FormOCRScreen> {
   final ReportService _reportService = ReportService();
 
   Future<void> _pickImage() async {
+    if (_isProcessing) return;
+
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -32,88 +35,102 @@ class _FormOCRScreenState extends State<FormOCRScreen> {
 
       if (pickedFile == null) return;
 
-      setState(() {
-        _processingError = null;
-      });
-
-      if (kIsWeb) {
-        // Untuk platform web
-        final bytes = await pickedFile.readAsBytes();
+      if (mounted) {
         setState(() {
-          _webFileBytes = bytes;
-        });
-      } else {
-        // Untuk platform mobile
-        setState(() {
-          _selectedImage = File(pickedFile.path);
+          _processingError = null;
+          _selectedImage = null;
+          _webFileBytes = null;
         });
       }
 
-      // Otomatis proses gambar setelah dipilih
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        if (mounted) {
+          setState(() {
+            _webFileBytes = bytes;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _selectedImage = File(pickedFile.path);
+          });
+        }
+      }
+
       _processSelectedImage();
     } catch (e) {
-      setState(() {
-        _processingError = 'Gagal memilih gambar: ${e.toString()}';
-      });
+      if (mounted) {
+        setState(() {
+          _processingError = 'Gagal memilih gambar: ${e.toString()}';
+          _isProcessing = false;
+        });
+      }
+      debugPrint('Image picking error: $e');
     }
   }
 
   void _processSelectedImage() async {
-    setState(() {
-      _isProcessing = true;
-      _processingError = null;
-    });
+    if (!_hasImage()) {
+      if (mounted) {
+        setState(() {
+          _processingError = 'Silakan pilih gambar terlebih dahulu.';
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isProcessing = true;
+        _processingError = null;
+      });
+    }
 
     try {
-      dynamic imageSource;
-
-      if (kIsWeb) {
-        imageSource = _webFileBytes;
-      } else {
-        imageSource = _selectedImage;
-      }
+      dynamic imageSource = kIsWeb ? _webFileBytes : _selectedImage;
 
       if (imageSource == null) {
-        throw Exception('Silakan pilih gambar terlebih dahulu');
+        throw Exception('Sumber gambar tidak valid.');
       }
 
-      final extractedData = await _reportService.processImage(imageSource);
+      final Map<String, dynamic>? extractedData = await _reportService
+          .processImage(imageSource);
 
       if (!mounted) return;
 
       if (extractedData != null) {
-        // Cek apakah ada koreksi teks yang dilakukan
-        if (extractedData['metadata'] != null &&
-            extractedData['metadata']['correction_detected'] == true &&
-            extractedData['metadata']['correction_report'] != null) {
-          // Tampilkan dialog koreksi jika ada
+        debugPrint('OCR Extracted Data: $extractedData');
+
+        final metadata = extractedData['metadata'];
+        if (metadata is Map &&
+            metadata['correction_detected'] == true &&
+            metadata['correction_report'] != null) {
           FormCorrectionUtils.showCorrectionReport(
             context,
-            extractedData['metadata']['correction_report'].toString(),
+            metadata['correction_report'].toString(),
           );
         }
 
-        // Navigasi ke form dengan data yang sudah diisi
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ReportFormScreen()),
+          MaterialPageRoute(
+            builder: (context) => ReportFormScreen(initialData: extractedData),
+          ),
         );
+      } else {
+        throw Exception('Gagal mengekstrak data dari gambar.');
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _processingError = e.toString();
+          _processingError = 'Gagal memproses gambar: ${e.toString()}';
           _isProcessing = false;
         });
-
-        // Tampilkan error dalam dialog
-        FormCorrectionUtils.showErrorDialog(
-          context,
-          'Gagal memproses gambar: ${e.toString()}',
-        );
+        debugPrint('Image processing error: $e');
       }
     } finally {
-      if (mounted) {
+      if (mounted && _isProcessing) {
         setState(() {
           _isProcessing = false;
         });
@@ -121,110 +138,71 @@ class _FormOCRScreenState extends State<FormOCRScreen> {
     }
   }
 
+  bool _hasImage() {
+    return _selectedImage != null || _webFileBytes != null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      // Gunakan AppBar standar dari tema
       appBar: AppBar(
-        title: const Text('Scan LSB Form'),
-        backgroundColor: AppTheme.primaryColor,
+        title: const Text('Scan Formulir LSB'),
+        // backgroundColor: theme.colorScheme.primary, // Hapus agar konsisten
+        // foregroundColor: theme.colorScheme.onPrimary, // Hapus agar konsisten
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0), // Sesuaikan padding
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Unggah Foto Laporan LSB',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                'Unggah Foto Formulir LSB', // Judul lebih jelas
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Pilih foto dari galeri yang menampilkan formulir LSB dengan jelas',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+              const SizedBox(height: 12), // Sedikit lebih banyak spasi
+              Text(
+                'Pastikan foto formulir terlihat jelas dan tidak buram untuk hasil terbaik.', // Instruksi lebih humanis
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8),
+                ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 32), // Spasi lebih besar sebelum area gambar
 
-              // Area pilih gambar
+              // Gunakan DottedBorder untuk area pemilihan gambar
               GestureDetector(
                 onTap: _isProcessing ? null : _pickImage,
-                child: Container(
-                  height: 250,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: _getImageWidget(),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Tombol aksi
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isProcessing ? null : _pickImage,
-                      icon: const Icon(Icons.add_photo_alternate),
-                      label: Text(
-                        _hasImage() ? 'Ganti Gambar' : 'Pilih Gambar',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  if (_hasImage()) ...[
-                    const SizedBox(width: 16),
-                    ElevatedButton.icon(
-                      onPressed: _isProcessing ? null : _processSelectedImage,
-                      icon: const Icon(Icons.document_scanner),
-                      label: const Text('Proses Ulang'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.secondaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-
-              // Menampilkan pesan error jika ada
-              if (_processingError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
+                child: DottedBorder(
+                  color: _processingError != null
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary.withOpacity(0.6),
+                  strokeWidth: 2,
+                  borderType: BorderType.RRect,
+                  radius: const Radius.circular(16),
+                  dashPattern: const [8, 6],
                   child: Container(
-                    padding: const EdgeInsets.all(12),
+                    height: 280,
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade200),
+                      // Warna latar belakang lebih lembut
+                      color: theme.colorScheme.primaryContainer.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(15), // Cocokkan radius DottedBorder
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Terjadi Kesalahan:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _processingError!,
-                          style: TextStyle(color: Colors.red.shade800),
-                        ),
-                      ],
-                    ),
+                    child: _getImageWidget(theme), // Panggil widget gambar
                   ),
                 ),
+              ),
+              const SizedBox(height: 24), // Spasi setelah area gambar
+
+              _buildActionButtons(theme), // Panggil widget tombol
+              const SizedBox(height: 20), // Spasi sebelum error
+
+              if (_processingError != null) _buildErrorDisplay(theme), // Tampilkan error jika ada
             ],
           ),
         ),
@@ -232,66 +210,168 @@ class _FormOCRScreenState extends State<FormOCRScreen> {
     );
   }
 
-  Widget _getImageWidget() {
+  // Widget untuk menampilkan konten di dalam area DottedBorder
+  Widget _getImageWidget(ThemeData theme) {
     if (_isProcessing) {
-      return const Center(
+      // Tampilan saat sedang memproses
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Memproses gambar...', style: TextStyle(color: Colors.grey)),
-            SizedBox(height: 8),
+            CircularProgressIndicator(color: theme.colorScheme.primary),
+            const SizedBox(height: 20),
+            Text('Menganalisis Formulir...', style: theme.textTheme.bodyLarge),
+            const SizedBox(height: 8),
             Text(
-              'Mohon tunggu sebentar',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+              'AI sedang bekerja, mohon tunggu...',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       );
-    } else if (_selectedImage != null) {
+    } else if (_selectedImage != null || _webFileBytes != null) {
+      // Tampilan preview gambar yang dipilih
       return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.file(
-          _selectedImage!,
-          fit: BoxFit.cover,
-          width: double.infinity,
-        ),
-      );
-    } else if (_webFileBytes != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.memory(
-          _webFileBytes!,
-          fit: BoxFit.cover,
-          width: double.infinity,
-        ),
+        borderRadius: BorderRadius.circular(15), // Cocokkan radius DottedBorder
+        child: kIsWeb
+            ? Image.memory(
+                _webFileBytes!,
+                fit: BoxFit.contain, // Agar gambar tidak terpotong
+                width: double.infinity,
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildImageErrorPlaceholder(theme, "Gagal memuat preview"),
+              )
+            : Image.file(
+                _selectedImage!,
+                fit: BoxFit.contain, // Agar gambar tidak terpotong
+                width: double.infinity,
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildImageErrorPlaceholder(theme, "Gagal memuat preview"),
+              ),
       );
     } else {
+      // Tampilan placeholder awal
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.add_photo_alternate,
-            size: 64,
-            color: Colors.grey.shade400,
+            Icons.document_scanner_outlined, // Ikon lebih relevan
+            size: 72, // Lebih besar
+            color: theme.colorScheme.primary.withOpacity(0.8),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
-            'Ketuk untuk memilih gambar',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+            'Ketuk di sini untuk Scan',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Format: JPG, PNG',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              'Ambil foto formulir LSB dari galeri Anda',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       );
     }
   }
 
-  bool _hasImage() {
-    return _selectedImage != null || _webFileBytes != null;
+  // Widget placeholder jika gambar gagal dimuat
+  Widget _buildImageErrorPlaceholder(ThemeData theme, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image_outlined, color: theme.colorScheme.error, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget untuk tombol aksi
+  Widget _buildActionButtons(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Tombol utama untuk memilih/mengganti gambar
+        ElevatedButton.icon(
+          onPressed: _isProcessing ? null : _pickImage,
+          icon: Icon(_hasImage() ? Icons.sync_outlined : Icons.photo_library_outlined),
+          label: Text(_hasImage() ? 'Ganti Gambar' : 'Pilih dari Galeri'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16), // Lebih tinggi
+            textStyle: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), // Sesuaikan radius
+          ),
+        ),
+        // Tombol proses hanya muncul jika ada gambar dan tidak sedang memproses
+        if (_hasImage() && !_isProcessing) ...[
+          const SizedBox(height: 12),
+          FilledButton.icon( // Gunakan FilledButton untuk aksi utama setelah gambar dipilih
+            onPressed: _processSelectedImage,
+            icon: const Icon(Icons.auto_fix_high_outlined), // Ikon AI/proses
+            label: const Text('Proses dengan AI'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              textStyle: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              backgroundColor: AppTheme.accentColor, // Warna aksen
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // Widget untuk menampilkan pesan error
+  Widget _buildErrorDisplay(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer, // Warna solid dari tema
+        borderRadius: BorderRadius.circular(12), // Sesuaikan radius
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.warning_amber_rounded, // Ikon warning
+            color: theme.colorScheme.onErrorContainer,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _processingError ?? 'Terjadi kesalahan tidak diketahui.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

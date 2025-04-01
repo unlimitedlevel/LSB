@@ -32,6 +32,14 @@ class HazardReport {
   final String? closingNotes;
   final DateTime? closedAt;
 
+  // --- Field Workflow Tambahan ---
+  final String? assignedToUserId; // ID Pengguna Supabase Auth?
+  final String? assignedToName;   // Nama penanggung jawab
+  final String? priority;         // 'Rendah', 'Sedang', 'Tinggi'
+  final DateTime? dueDate;        // Batas waktu penyelesaian
+  final String? validationStatus; // 'Pending', 'Valid', 'Invalid'
+  final List<Map<String, dynamic>>? followUpActions; // Riwayat tindak lanjut
+
   // Field untuk koreksi tata bahasa dan typo
   final bool? correctionDetected;
   final String? correctionReport;
@@ -63,12 +71,28 @@ class HazardReport {
     this.closedBy,
     this.closingNotes,
     this.closedAt,
+    // Workflow
+    this.assignedToUserId,
+    this.assignedToName,
+    this.priority,
+    this.dueDate,
+    this.validationStatus,
+    this.followUpActions,
+    // Koreksi AI
     this.correctionDetected,
     this.correctionReport,
     this.metadata,
   });
 
   factory HazardReport.fromJson(Map<String, dynamic> json) {
+    // Helper untuk parse list of map dari JSON
+    List<Map<String, dynamic>>? parseFollowUpActions(dynamic data) {
+      if (data is List) {
+        return data.map((item) => Map<String, dynamic>.from(item)).toList();
+      }
+      return null;
+    }
+
     return HazardReport(
       id: json['id'],
       reporterName: json['reporter_name'],
@@ -109,12 +133,20 @@ class HazardReport {
       closingNotes: json['closing_notes'],
       closedAt:
           json['closed_at'] != null ? DateTime.parse(json['closed_at']) : null,
+      // Workflow
+      assignedToUserId: json['assigned_to_user_id'],
+      assignedToName: json['assigned_to_name'],
+      priority: json['priority'],
+      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      validationStatus: json['validation_status'],
+      followUpActions: parseFollowUpActions(json['follow_up_actions']), // Parse list map
+      // Koreksi AI
       correctionDetected: json['correction_detected'],
       correctionReport: json['correction_report'],
       metadata:
           json['metadata'] is Map
               ? Map<String, dynamic>.from(json['metadata'])
-              : null,
+              : (json['metadata'] is String ? jsonDecode(json['metadata']) : null), // Handle jika metadata string JSON
     );
   }
 
@@ -143,6 +175,14 @@ class HazardReport {
       'closed_by': closedBy,
       'closing_notes': closingNotes,
       'closed_at': closedAt?.toIso8601String(),
+      // Workflow
+      'assigned_to_user_id': assignedToUserId,
+      'assigned_to_name': assignedToName,
+      'priority': priority,
+      'due_date': dueDate?.toIso8601String(),
+      'validation_status': validationStatus,
+      'follow_up_actions': followUpActions, // Simpan list map langsung
+      // Koreksi AI
       'correction_detected': correctionDetected,
       'correction_report': correctionReport,
       if (metadata != null) 'metadata': metadata,
@@ -208,6 +248,14 @@ class HazardReport {
     String? closedBy,
     String? closingNotes,
     DateTime? closedAt,
+    // Workflow
+    String? assignedToUserId,
+    String? assignedToName,
+    String? priority,
+    DateTime? dueDate,
+    String? validationStatus,
+    List<Map<String, dynamic>>? followUpActions,
+    // Koreksi AI
     bool? correctionDetected,
     String? correctionReport,
     Map<String, dynamic>? metadata,
@@ -236,6 +284,14 @@ class HazardReport {
       closedBy: closedBy ?? this.closedBy,
       closingNotes: closingNotes ?? this.closingNotes,
       closedAt: closedAt ?? this.closedAt,
+      // Workflow
+      assignedToUserId: assignedToUserId ?? this.assignedToUserId,
+      assignedToName: assignedToName ?? this.assignedToName,
+      priority: priority ?? this.priority,
+      dueDate: dueDate ?? this.dueDate,
+      validationStatus: validationStatus ?? this.validationStatus,
+      followUpActions: followUpActions ?? this.followUpActions,
+      // Koreksi AI
       correctionDetected: correctionDetected ?? this.correctionDetected,
       correctionReport: correctionReport ?? this.correctionReport,
       metadata: metadata ?? this.metadata,
