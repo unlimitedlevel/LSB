@@ -37,17 +37,6 @@ void main() async {
         debugPrint('Working directory: ${Directory.current.path}');
       });
 
-  // Initialize secure keys for release mode
-  await SupabaseConfig.initialize();
-
-  // Verify env values after initialization
-  debugPrint(
-    'Supabase URL after init: ${SupabaseConfig.url.isNotEmpty ? "Set" : "Empty"}',
-  );
-  debugPrint(
-    'Supabase Anon Key after init: ${SupabaseConfig.anonKey.isNotEmpty ? "Set" : "Empty"}',
-  );
-
   // Initialize Supabase if URL and key are available
   try {
     final url = SupabaseConfig.url;

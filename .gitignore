@@ -45,14 +45,16 @@ app.*.map.json
 /android/app/release
 
 # Environment variables and secrets
-.env
-.env.local
-.env.development
-.env.production
+*.env
+*.env.local
+*.env.development
+*.env.production
 *.env.*
 /lib/config/secrets.dart
 /lib/config/api_keys.dart
 /lib/config/secure_keys.dart
+/build/flutter_assets/.env
+/build/.env
 
 # Gemini API keys and credentials
 /Gemini API LSB.txt

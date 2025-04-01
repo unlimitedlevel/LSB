@@ -21,46 +21,15 @@ Aplikasi untuk melakukan OCR (Optical Character Recognition) dan analisis otomat
 
 ### Mendapatkan Kunci API
 
-1. **Gemini API Key**:
-   - Kunjungi [Google AI Studio](https://ai.google.dev/)
-   - Buat akun dan dapatkan API key
-
-2. **Supabase Setup**:
-   - Daftar di [Supabase](https://supabase.com/)
-   - Buat project baru
-   - Dapatkan URL dan Anon Key
+Hapus baris ini
 
 ### Konfigurasi Lingkungan
 
-1. Salin file `.env.example` menjadi `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edit file `.env` dan masukkan kunci API dan kredensial:
-   ```
-   GEMINI_API_KEY=your_gemini_api_key
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
+Hapus baris ini
 
 ### Instalasi
 
-1. Clone repository:
-   ```bash
-   git clone https://github.com/yourusername/lsb_ocr.git
-   cd lsb_ocr
-   ```
-
-2. Install dependencies:
-   ```bash
-   flutter pub get
-   ```
-
-3. Jalankan aplikasi:
-   ```bash
-   flutter run
-   ```
+Hapus baris ini
 
 ## Struktur Basis Data
 
